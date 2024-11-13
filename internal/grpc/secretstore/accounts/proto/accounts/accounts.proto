@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package accounts;
+
+option go_package = "gopasskeeper.accounts.v1;accountsv1";
+
+service Accounts {
+    rpc Add(AccountAddRequest) returns (AccountAddResponse);
+    rpc GetSecret(AccountSecretRequest) returns (AccountSecretResponse);
+    rpc Search(AccountSearchRequest) returns (AccountSearchResponse);
+    rpc Remove(AccountRemoveRequest) returns (AccountRemoveResponse);
+}
+
+message AccountAddRequest {
+    string login = 1;
+    string server = 2;
+    string password = 3;
+}
+
+message AccountAddResponse {
+    bool status = 1;
+    string msg = 2;
+}
+
+message AccountSecretRequest {
+    string secret_id = 1;
+}
+
+message AccountSecretResponse {
+    string login = 1;
+    string server = 2;
+    string password = 3;
+}
+
+message AccountSearchRequest {
+    string substring = 1;
+    int64 offset = 2;
+    int32 limit = 3;
+}
+
+message AccountSearchItem {
+    string id = 1;
+    string login = 2;
+    string server = 3;
+}
+
+message AccountSearchResponse {
+    int64 count = 1;
+    repeated AccountSearchItem items = 2;
+}
+
+message AccountRemoveRequest {
+    string id = 1;
+}
+
+message AccountRemoveResponse {
+    bool status = 1;
+    string msg = 2;
+}

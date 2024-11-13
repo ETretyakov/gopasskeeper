@@ -1,0 +1,5 @@
+BEGIN TRANSACTION;
+
+DROP TABLE public.sec_notes;
+
+COMMIT;

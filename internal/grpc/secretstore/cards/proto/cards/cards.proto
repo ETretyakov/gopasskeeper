@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package cards;
+
+option go_package = "gopasskeeper.cards.v1;cardsv1";
+
+service Cards {
+    rpc Add(CardAddRequest) returns (CardAddResponse);
+    rpc GetSecret(CardSecretRequest) returns (CardSecretResponse);
+    rpc Search(CardSearchRequest) returns (CardSearchResponse);
+    rpc Remove(CardRemoveRequest) returns (CardRemoveResponse);
+}
+
+message CardAddRequest {
+    string name = 1;
+    string number = 2;
+    int32 month = 3;
+    int32 year = 4;
+    string cvc = 5;
+    string pin = 6;
+}
+
+message CardAddResponse {
+    bool status = 1;
+    string msg = 2;
+}
+
+message CardSecretRequest {
+    string secret_id = 1;
+}
+
+message CardSecretResponse {
+    string name = 1;
+    string number = 2;
+    int32 month = 3;
+    int32 year = 4;
+    string cvc = 5;
+    string pin = 6;
+}
+
+message CardSearchRequest {
+    string substring = 1;
+    int64 offset = 2;
+    int32 limit = 3;
+}
+
+message CardSearchItem {
+    string id = 1;
+    string name = 2;
+    string mask = 3;
+}
+
+message CardSearchResponse {
+    int64 count = 1;
+    repeated CardSearchItem items = 2;
+}
+
+message CardRemoveRequest {
+    string id = 1;
+}
+
+message CardRemoveResponse {
+    bool status = 1;
+    string msg = 2;
+}

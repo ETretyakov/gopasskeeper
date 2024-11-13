@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package files;
+
+option go_package = "gopasskeeper.files.v1;filesv1";
+
+service Files {
+    rpc Add(FileAddRequest) returns (FileAddResponse);
+    rpc GetSecret(FileSecretRequest) returns (FileSecretResponse);
+    rpc Search(FileSearchRequest) returns (FileSearchResponse);
+    rpc Remove(FileRemoveRequest) returns (FileRemoveResponse);
+}
+
+
+message FileAddRequest {
+    string name = 1;
+    bytes content = 2;
+}
+
+message FileAddResponse {
+    bool status = 1;
+    string msg = 2;
+}
+
+message FileSecretRequest {
+    string secret_id = 1;
+}
+
+message FileSecretResponse {
+    string name = 1;
+    bytes content = 2;
+}
+
+message FileSearchRequest {
+    string substring = 1;
+    int64 offset = 2;
+    int32 limit = 3;
+}
+
+message FileSearchItem {
+    string id = 1;
+    string name = 2;
+}
+
+message FileSearchResponse {
+    int64 count = 1;
+    repeated FileSearchItem items = 2;
+}
+
+message FileRemoveRequest {
+    string id = 1;
+}
+
+message FileRemoveResponse {
+    bool status = 1;
+    string msg = 2;
+}

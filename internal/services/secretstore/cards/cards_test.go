@@ -2,55 +2,27 @@ package cards
 
 import (
 	"context"
-	"gopasskeeper/internal/config"
 	"gopasskeeper/internal/domain/models"
 	"gopasskeeper/internal/lib/crypto"
 	"gopasskeeper/internal/logger"
+	"gopasskeeper/internal/mocks"
 	"gopasskeeper/internal/repository"
 	"reflect"
 	"testing"
-
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jmoiron/sqlx"
 )
 
 func TestCards_Add(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const id = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
 
-	rows := mock.
-		NewRows([]string{"id"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556")
+	mockedDB := mocks.NewDB(t).
+		CardAddMockedDB(id).
+		AddSyncMocks()
 
-	query := `
-	INSERT INTO public\.sec_cards\(uid, name, number, mask, month, year, cvc, pin\)
-	VALUES \(.+?, .+?, .+?, .+?, .+?, .+?, .+?, .+?\)
-	RETURNING id;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	syncQuery := `
-	INSERT INTO syn_timestamps\(uid, timestamp\)
-	VALUES \(.+?, now\(\)\)
-	ON CONFLICT ON CONSTRAINT syn_timestamps_pk
-	DO UPDATE SET timestamp = excluded\.timestamp
-	`
-	mock.ExpectPrepare(syncQuery)
-	mock.ExpectQuery(syncQuery).WillReturnRows()
-
-	repo := repository.New(sqlxDB)
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
-	)
+	fernetEncryptor := mocks.NewFernet(t)
 
 	type fields struct {
 		log             *logger.GRPCLogger
@@ -97,7 +69,7 @@ func TestCards_Add(t *testing.T) {
 			},
 			want: &models.Message{
 				Status: true,
-				Msg:    "Card added: card id - d89b92df-44e8-4d66-857a-bf7ec0a61556",
+				Msg:    "Card added: card id - " + id,
 			},
 			wantErr: false,
 		},
@@ -124,45 +96,29 @@ func TestCards_Add(t *testing.T) {
 
 func TestCards_GetSecret(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
+	const (
+		name   = "VISA"
+		number = "4242424242424242"
+		month  = 1
+		year   = 2025
+		cvc    = "777"
+		pin    = "1111"
 	)
 
-	cvc := "777"
+	fernetEncryptor := mocks.NewFernet(t)
 	encCVC, _ := fernetEncryptor.Encrypt([]byte(cvc))
-
-	pin := "1111"
 	encPIN, _ := fernetEncryptor.Encrypt([]byte(pin))
 
-	rows := mock.
-		NewRows([]string{"name", "number", "month", "year", "cvc", "pin"}).
-		AddRow("VISA", "4242424242424242", 1, 2025, encCVC, encPIN)
+	mockedDB := mocks.NewDB(t).
+		CardGetSecretMockedDB(
+			name,
+			number,
+			month, year,
+			string(encCVC[:]), string(encPIN[:]),
+		)
 
-	query := `
-	SELECT sc\.name   AS \"name\",
-		   sc\.number AS \"number\",
-		   sc\.month  AS \"month\",
-		   sc\.year   AS \"year\",
-		   sc\.cvc    AS \"cvc\",
-		   sc\.pin    AS \"pin\"
-	FROM sec_cards sc
-	WHERE sc\.uid = .+? AND 
-	      sc\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	repo := repository.New(sqlxDB)
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
 
 	type fields struct {
@@ -229,51 +185,19 @@ func TestCards_GetSecret(t *testing.T) {
 
 func TestCards_Search(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	rows := mock.
-		NewRows([]string{"id", "name", "mask"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556", "VISA", "**** **** **** 4242")
-
-	query := `
-	SELECT sc\.id   AS \"id\",
-	       sc\.name AS \"name\",
-		   sc\.mask AS \"mask\"
-	FROM sec_cards sc
-	WHERE sc\.uid = .+? AND
-		  sc\.name ILIKE .+?
-	ORDER BY sc\.name
-	OFFSET .+?
-	LIMIT  .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	countRows := mock.
-		NewRows([]string{"count"}).
-		AddRow(1)
-
-	countQuery := `
-	SELECT count\(\*\) AS \"count\"
-	FROM sec_cards sc
-	WHERE sc\.uid = .+? AND
-		  sc\.name ILIKE .+?;
-	`
-	mock.ExpectPrepare(countQuery)
-	mock.ExpectQuery(countQuery).WillReturnRows(countRows)
-
-	repo := repository.New(sqlxDB)
-	log := logger.NewGRPCLogger("accounts-test")
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
+	const (
+		id   = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+		name = "VISA"
+		mask = "**** **** **** 4242"
 	)
+
+	mockedDB := mocks.NewDB(t).
+		CardSearchMockedDB(id, name, mask)
+
+	repo := repository.New(mockedDB.Get())
+	log := logger.NewGRPCLogger("accounts-test")
+	fernetEncryptor := mocks.NewFernet(t)
 
 	type fields struct {
 		log             *logger.GRPCLogger
@@ -313,9 +237,9 @@ func TestCards_Search(t *testing.T) {
 				Count: 1,
 				Items: []*models.CardSearchItem{
 					{
-						ID:   "d89b92df-44e8-4d66-857a-bf7ec0a61556",
-						Name: "VISA",
-						Mask: "**** **** **** 4242",
+						ID:   id,
+						Name: name,
+						Mask: mask,
 					},
 				},
 			},
@@ -344,37 +268,14 @@ func TestCards_Search(t *testing.T) {
 
 func TestCards_Remove(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	mockedDB := mocks.NewDB(t).
+		CardRemoveMockedDB().
+		AddSyncMocks()
 
-	query := `
-	DELETE FROM sec_cards
-	WHERE uid = .+? AND
-	      id  = .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows()
-
-	syncQuery := `
-	INSERT INTO syn_timestamps\(uid, timestamp\)
-	VALUES \(.+?, now\(\)\)
-	ON CONFLICT ON CONSTRAINT syn_timestamps_pk
-	DO UPDATE SET timestamp = excluded\.timestamp
-	`
-	mock.ExpectPrepare(syncQuery)
-	mock.ExpectQuery(syncQuery).WillReturnRows()
-
-	repo := repository.New(sqlxDB)
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
-	)
+	fernetEncryptor := mocks.NewFernet(t)
 
 	type fields struct {
 		log             *logger.GRPCLogger

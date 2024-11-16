@@ -3,69 +3,27 @@ package files
 import (
 	"bytes"
 	"context"
-	"gopasskeeper/internal/config"
 	"gopasskeeper/internal/domain/models"
 	"gopasskeeper/internal/lib/crypto"
 	"gopasskeeper/internal/logger"
+	"gopasskeeper/internal/mocks"
 	"gopasskeeper/internal/repository"
-	"io"
 	"reflect"
 	"testing"
-
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jmoiron/sqlx"
 )
-
-type MockedS3Client struct{}
-
-func (m *MockedS3Client) PutObject(ctx context.Context, name string, obj io.Reader, size int64) error {
-	return nil
-}
-
-func (m *MockedS3Client) GetObject(ctx context.Context, name string) ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (m *MockedS3Client) RemoveObject(ctx context.Context, name string) error {
-	return nil
-}
 
 func TestFiles_Add(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const id = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+	mockedDB := mocks.NewDB(t).
+		FileAddMockedDB(id).
+		AddSyncMocks()
 
-	rows := mock.
-		NewRows([]string{"id"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556")
-
-	query := `
-	INSERT INTO public\.sec_files\(uid, name\)
-	VALUES \(.+?, .+?\)
-	RETURNING id;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	syncQuery := `
-	INSERT INTO syn_timestamps\(uid, timestamp\)
-	VALUES \(.+?, now\(\)\)
-	ON CONFLICT ON CONSTRAINT syn_timestamps_pk
-	DO UPDATE SET timestamp = excluded\.timestamp
-	`
-	mock.ExpectPrepare(syncQuery)
-	mock.ExpectQuery(syncQuery).WillReturnRows()
-
-	aesEncryptor := crypto.NewAESEncryptor(&config.SecurityConfig{
-		AES: "3c730a7367964abd9187df2bb174d36b",
-	})
-	repo := repository.New(sqlxDB)
+	aesEncryptor := mocks.NewAESEncryptor()
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
-	s3Client := &MockedS3Client{}
+	s3Client := mocks.NewMockedS3Client()
 
 	type fields struct {
 		log          *logger.GRPCLogger
@@ -103,7 +61,7 @@ func TestFiles_Add(t *testing.T) {
 			},
 			want: &models.Message{
 				Status: true,
-				Msg:    "File added: file id - d89b92df-44e8-4d66-857a-bf7ec0a61556",
+				Msg:    "File added: file id - " + id,
 			},
 		},
 	}
@@ -130,33 +88,18 @@ func TestFiles_Add(t *testing.T) {
 
 func TestFiles_GetSecret(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		name = "file.txt"
+	)
 
-	rows := mock.
-		NewRows([]string{"name"}).
-		AddRow("file.txt")
+	mockedDB := mocks.NewDB(t).
+		FileGetSecretMockedDB(name)
 
-	query := `
-	SELECT sf\.name   AS \"name\"
-	FROM sec_files sf
-	WHERE sf\.uid = .+? AND 
-	      sf\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	aesEncryptor := crypto.NewAESEncryptor(&config.SecurityConfig{
-		AES: "3c730a7367964abd9187df2bb174d36b",
-	})
-	repo := repository.New(sqlxDB)
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
-	s3Client := &MockedS3Client{}
+	s3Client := mocks.NewMockedS3Client()
+	aesEncryptor := mocks.NewAESEncryptor()
 
 	type fields struct {
 		log          *logger.GRPCLogger
@@ -224,49 +167,19 @@ func TestFiles_GetSecret(t *testing.T) {
 
 func TestFiles_Search(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
+	const (
+		id   = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+		name = "file.txt"
+	)
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	mockedDB := mocks.NewDB(t).
+		FileSearchMockedDB(id, name)
 
-	rows := mock.
-		NewRows([]string{"id", "name"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556", "file.txt")
+	repo := repository.New(mockedDB.Get())
 
-	query := `
-	SELECT sf\.id   AS \"id\",
-	       sf\.name AS \"name\"
-	FROM sec_files sf
-	WHERE sf\.uid = .+? AND
-		  sf\.name ILIKE .+?
-	ORDER BY sf\.name
-	OFFSET .+?
-	LIMIT  .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	countRows := mock.
-		NewRows([]string{"count"}).
-		AddRow(1)
-
-	countQuery := `
-	SELECT count\(\*\) AS \"count\"
-	FROM sec_files sf
-	WHERE sf\.uid = .+? AND
-		  sf\.name ILIKE .+?;
-	`
-	mock.ExpectPrepare(countQuery)
-	mock.ExpectQuery(countQuery).WillReturnRows(countRows)
-
-	aesEncryptor := crypto.NewAESEncryptor(&config.SecurityConfig{
-		AES: "3c730a7367964abd9187df2bb174d36b",
-	})
-	repo := repository.New(sqlxDB)
+	aesEncryptor := mocks.NewAESEncryptor()
 	log := logger.NewGRPCLogger("accounts-test")
-	s3Client := &MockedS3Client{}
+	s3Client := mocks.NewMockedS3Client()
 
 	type fields struct {
 		log          *logger.GRPCLogger
@@ -339,50 +252,21 @@ func TestFiles_Search(t *testing.T) {
 
 func TestFiles_Remove(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		name = "file.txt"
+	)
 
-	rows := mock.
-		NewRows([]string{"name"}).
-		AddRow("file.txt")
+	mockedDB := mocks.NewDB(t).
+		FileGetSecretMockedDB(name).
+		FileRemoveMockedDB().
+		AddSyncMocks()
 
-	query := `
-	SELECT sf\.name   AS \"name\"
-	FROM sec_files sf
-	WHERE sf\.uid = .+? AND 
-	      sf\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	repo := repository.New(mockedDB.Get())
 
-	deleteQuery := `
-	DELETE FROM sec_files
-	WHERE uid = .+? AND
-	      id  = .+?;
-	`
-	mock.ExpectPrepare(deleteQuery)
-	mock.ExpectQuery(deleteQuery).WillReturnRows()
-
-	syncQuery := `
-	INSERT INTO syn_timestamps\(uid, timestamp\)
-	VALUES \(.+?, now\(\)\)
-	ON CONFLICT ON CONSTRAINT syn_timestamps_pk
-	DO UPDATE SET timestamp = excluded\.timestamp
-	`
-	mock.ExpectPrepare(syncQuery)
-	mock.ExpectQuery(syncQuery).WillReturnRows()
-
-	aesEncryptor := crypto.NewAESEncryptor(&config.SecurityConfig{
-		AES: "3c730a7367964abd9187df2bb174d36b",
-	})
-	repo := repository.New(sqlxDB)
+	aesEncryptor := mocks.NewAESEncryptor()
 	log := logger.NewGRPCLogger("accounts-test")
-	s3Client := &MockedS3Client{}
+	s3Client := mocks.NewMockedS3Client()
 
 	type fields struct {
 		log          *logger.GRPCLogger

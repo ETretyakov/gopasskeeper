@@ -3,33 +3,20 @@ package files
 import (
 	"context"
 	"gopasskeeper/internal/domain/models"
+	"gopasskeeper/internal/mocks"
 	"reflect"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 )
 
 func TestFilesRepoImpl_Add(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const id = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
 
-	rows := mock.
-		NewRows([]string{"id"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556")
-
-	query := `
-	INSERT INTO public\.sec_files\(uid, name\)
-	VALUES \(.+?, .+?\)
-	RETURNING id;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mockedDB := mocks.NewDB(t).
+		FileAddMockedDB(id)
 
 	type fields struct {
 		db *sqlx.DB
@@ -48,13 +35,13 @@ func TestFilesRepoImpl_Add(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:  ctx,
 				uid:  "31487452-31d9-4b1f-a7f8-c00b43372730",
 				name: "file.txt",
 			},
-			want:    "d89b92df-44e8-4d66-857a-bf7ec0a61556",
+			want:    id,
 			wantErr: false,
 		},
 	}
@@ -77,26 +64,12 @@ func TestFilesRepoImpl_Add(t *testing.T) {
 
 func TestFilesRepoImpl_GetSecret(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	rows := mock.
-		NewRows([]string{"name"}).
-		AddRow("file.txt")
-
-	query := `
-	SELECT sf\.name   AS \"name\"
-	FROM sec_files sf
-	WHERE sf\.uid = .+? AND 
-	      sf\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	const (
+		name = "file.txt"
+	)
+	mockedDB := mocks.NewDB(t).
+		FileGetSecretMockedDB(name)
 
 	type fields struct {
 		db *sqlx.DB
@@ -115,13 +88,13 @@ func TestFilesRepoImpl_GetSecret(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",
 				fileID: "d89b92df-44e8-4d66-857a-bf7ec0a61556",
 			},
-			want:    "file.txt",
+			want:    name,
 			wantErr: false,
 		},
 	}
@@ -144,42 +117,14 @@ func TestFilesRepoImpl_GetSecret(t *testing.T) {
 
 func TestFilesRepoImpl_Search(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		id   = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+		name = "file.txt"
+	)
 
-	rows := mock.
-		NewRows([]string{"id", "name"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556", "file.txt")
-
-	query := `
-	SELECT sf\.id   AS \"id\",
-	       sf\.name AS \"name\"
-	FROM sec_files sf
-	WHERE sf\.uid = .+? AND
-		  sf\.name ILIKE .+?
-	ORDER BY sf\.name
-	OFFSET .+?
-	LIMIT  .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	countRows := mock.
-		NewRows([]string{"count"}).
-		AddRow(1)
-
-	countQuery := `
-	SELECT count\(\*\) AS \"count\"
-	FROM sec_files sf
-	WHERE sf\.uid = .+? AND
-		  sf\.name ILIKE .+?;
-	`
-	mock.ExpectPrepare(countQuery)
-	mock.ExpectQuery(countQuery).WillReturnRows(countRows)
+	mockedDB := mocks.NewDB(t).
+		FileSearchMockedDB(id, name)
 
 	type fields struct {
 		db *sqlx.DB
@@ -198,7 +143,7 @@ func TestFilesRepoImpl_Search(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx: ctx,
 				uid: "31487452-31d9-4b1f-a7f8-c00b43372730",
@@ -212,8 +157,8 @@ func TestFilesRepoImpl_Search(t *testing.T) {
 				Count: 1,
 				Items: []*models.FileSearchItem{
 					{
-						ID:   "d89b92df-44e8-4d66-857a-bf7ec0a61556",
-						Name: "file.txt",
+						ID:   id,
+						Name: name,
 					},
 				},
 			},
@@ -239,20 +184,9 @@ func TestFilesRepoImpl_Search(t *testing.T) {
 
 func TestFilesRepoImpl_Remove(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	query := `
-	DELETE FROM sec_files
-	WHERE uid = .+? AND
-	      id  = .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows()
+	mockedDB := mocks.NewDB(t).
+		FileRemoveMockedDB()
 
 	type fields struct {
 		db *sqlx.DB
@@ -270,7 +204,7 @@ func TestFilesRepoImpl_Remove(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",

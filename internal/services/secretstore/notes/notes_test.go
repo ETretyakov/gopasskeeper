@@ -2,55 +2,26 @@ package notes
 
 import (
 	"context"
-	"gopasskeeper/internal/config"
 	"gopasskeeper/internal/domain/models"
 	"gopasskeeper/internal/lib/crypto"
 	"gopasskeeper/internal/logger"
+	"gopasskeeper/internal/mocks"
 	"gopasskeeper/internal/repository"
 	"reflect"
 	"testing"
-
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jmoiron/sqlx"
 )
 
 func TestNotes_Add(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const id = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+	mockedDB := mocks.NewDB(t).
+		NoteAddMockedDB(id).
+		AddSyncMocks()
 
-	rows := mock.
-		NewRows([]string{"id"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556")
-
-	query := `
-	INSERT INTO public\.sec_notes\(uid, name, content\)
-	VALUES \(.+?, .+?, .+?\)
-	RETURNING id;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	syncQuery := `
-	INSERT INTO syn_timestamps\(uid, timestamp\)
-	VALUES \(.+?, now\(\)\)
-	ON CONFLICT ON CONSTRAINT syn_timestamps_pk
-	DO UPDATE SET timestamp = excluded\.timestamp
-	`
-	mock.ExpectPrepare(syncQuery)
-	mock.ExpectQuery(syncQuery).WillReturnRows()
-
-	repo := repository.New(sqlxDB)
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
-	)
+	fernetEncryptor := mocks.NewFernet(t)
 
 	type fields struct {
 		log             *logger.GRPCLogger
@@ -86,7 +57,7 @@ func TestNotes_Add(t *testing.T) {
 			},
 			want: &models.Message{
 				Status: true,
-				Msg:    "Note added: note id - d89b92df-44e8-4d66-857a-bf7ec0a61556",
+				Msg:    "Note added: note id - " + id,
 			},
 			wantErr: false,
 		},
@@ -113,37 +84,19 @@ func TestNotes_Add(t *testing.T) {
 
 func TestNotes_GetSecret(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
+	const (
+		name    = "note"
+		content = "content"
 	)
 
-	content := "content"
+	fernetEncryptor := mocks.NewFernet(t)
 	encContent, _ := fernetEncryptor.Encrypt([]byte(content))
-	rows := mock.
-		NewRows([]string{"name", "content"}).
-		AddRow("note", string(encContent[:]))
 
-	query := `
-	SELECT sn\.name   AS \"name\",
-		   sn\.content AS \"content\"
-	FROM sec_notes sn
-	WHERE sn\.uid = .+? AND 
-	      sn\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mockedDB := mocks.NewDB(t).
+		NoteGetSecretMockedDB(name, string(encContent[:]))
 
-	repo := repository.New(sqlxDB)
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
 
 	type fields struct {
@@ -178,7 +131,7 @@ func TestNotes_GetSecret(t *testing.T) {
 				noteID: "d89b92df-44e8-4d66-857a-bf7ec0a61556",
 			},
 			want: &models.NoteSecret{
-				Name:    "note",
+				Name:    name,
 				Content: content,
 			},
 			wantErr: false,
@@ -206,50 +159,17 @@ func TestNotes_GetSecret(t *testing.T) {
 
 func TestNotes_Search(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
-
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	rows := mock.
-		NewRows([]string{"id", "name"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556", "note")
-
-	query := `
-	SELECT sn\.id   AS \"id\",
-	       sn\.name AS \"name\"
-	FROM sec_notes sn
-	WHERE sn\.uid = .+? AND
-		  sn\.name ILIKE .+?
-	ORDER BY sn\.name
-	OFFSET .+?
-	LIMIT  .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	countRows := mock.
-		NewRows([]string{"count"}).
-		AddRow(1)
-
-	countQuery := `
-	SELECT count\(\*\) AS \"count\"
-	FROM sec_notes sn
-	WHERE sn\.uid = .+? AND
-		  sn\.name ILIKE .+?;
-	`
-	mock.ExpectPrepare(countQuery)
-	mock.ExpectQuery(countQuery).WillReturnRows(countRows)
-
-	repo := repository.New(sqlxDB)
-	log := logger.NewGRPCLogger("accounts-test")
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
+	const (
+		id   = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+		name = "note"
 	)
+
+	mockedDB := mocks.NewDB(t).
+		NoteSearchMockedDB(id, name)
+
+	repo := repository.New(mockedDB.Get())
+	log := logger.NewGRPCLogger("accounts-test")
+	fernetEncryptor := mocks.NewFernet(t)
 
 	type fields struct {
 		log             *logger.GRPCLogger
@@ -289,8 +209,8 @@ func TestNotes_Search(t *testing.T) {
 				Count: 1,
 				Items: []*models.NoteSearchItem{
 					{
-						ID:   "d89b92df-44e8-4d66-857a-bf7ec0a61556",
-						Name: "note",
+						ID:   id,
+						Name: name,
 					},
 				},
 			},
@@ -319,37 +239,14 @@ func TestNotes_Search(t *testing.T) {
 
 func TestNotes_Remove(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	mockedDB := mocks.NewDB(t).
+		NoteRemoveMockedDB().
+		AddSyncMocks()
 
-	query := `
-	DELETE FROM sec_notes
-	WHERE uid = .+? AND
-	      id  = .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows()
-
-	syncQuery := `
-	INSERT INTO syn_timestamps\(uid, timestamp\)
-	VALUES \(.+?, now\(\)\)
-	ON CONFLICT ON CONSTRAINT syn_timestamps_pk
-	DO UPDATE SET timestamp = excluded\.timestamp
-	`
-	mock.ExpectPrepare(syncQuery)
-	mock.ExpectQuery(syncQuery).WillReturnRows()
-
-	repo := repository.New(sqlxDB)
+	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
-	fernetEncryptor, _ := crypto.NewFernet(
-		&config.SecurityConfig{
-			Fernet: "QijSv1fl9KAz733U_Rjxc2ribjQpJguYP2C5ezrQcwA=",
-		},
-	)
+	fernetEncryptor := mocks.NewFernet(t)
 
 	type fields struct {
 		log             *logger.GRPCLogger

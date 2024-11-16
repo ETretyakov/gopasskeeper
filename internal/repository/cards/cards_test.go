@@ -3,33 +3,18 @@ package cards
 import (
 	"context"
 	"gopasskeeper/internal/domain/models"
+	"gopasskeeper/internal/mocks"
 	"reflect"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 )
 
 func TestCardsRepoImpl_Add(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	rows := mock.
-		NewRows([]string{"id"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556")
-
-	query := `
-	INSERT INTO public\.sec_cards\(uid, name, number, mask, month, year, cvc, pin\)
-	VALUES \(.+?, .+?, .+?, .+?, .+?, .+?, .+?, .+?\)
-	RETURNING id;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	const id = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+	mockedDB := mocks.NewDB(t).CardAddMockedDB(id)
 
 	type fields struct {
 		db *sqlx.DB
@@ -54,7 +39,7 @@ func TestCardsRepoImpl_Add(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",
@@ -66,7 +51,7 @@ func TestCardsRepoImpl_Add(t *testing.T) {
 				cvc:    "777",
 				pin:    "1111",
 			},
-			want:    "d89b92df-44e8-4d66-857a-bf7ec0a61556",
+			want:    id,
 			wantErr: false,
 		},
 	}
@@ -89,31 +74,25 @@ func TestCardsRepoImpl_Add(t *testing.T) {
 
 func TestCardsRepoImpl_GetSecret(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		name   = "VISA"
+		number = "4242424242424242"
+		month  = 1
+		year   = 2025
+		cvc    = "777"
+		pin    = "1111"
+	)
 
-	rows := mock.
-		NewRows([]string{"name", "number", "month", "year", "cvc", "pin"}).
-		AddRow("VISA", "4242424242424242", 1, 2025, "777", "1111")
-
-	query := `
-	SELECT sc\.name   AS \"name\",
-		   sc\.number AS \"number\",
-		   sc\.month  AS \"month\",
-		   sc\.year   AS \"year\",
-		   sc\.cvc    AS \"cvc\",
-		   sc\.pin    AS \"pin\"
-	FROM sec_cards sc
-	WHERE sc\.uid = .+? AND 
-	      sc\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mockedDB := mocks.NewDB(t).
+		CardGetSecretMockedDB(
+			name,
+			number,
+			month,
+			year,
+			cvc,
+			pin,
+		)
 
 	type fields struct {
 		db *sqlx.DB
@@ -132,19 +111,19 @@ func TestCardsRepoImpl_GetSecret(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",
 				cardID: "d89b92df-44e8-4d66-857a-bf7ec0a61556",
 			},
 			want: &models.CardSecret{
-				Name:   "VISA",
-				Number: "4242424242424242",
-				Month:  1,
-				Year:   2025,
-				CVC:    "777",
-				PIN:    "1111",
+				Name:   name,
+				Number: number,
+				Month:  month,
+				Year:   year,
+				CVC:    cvc,
+				PIN:    pin,
 			},
 			wantErr: false,
 		},
@@ -168,43 +147,15 @@ func TestCardsRepoImpl_GetSecret(t *testing.T) {
 
 func TestCardsRepoImpl_Search(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		id   = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+		name = "VISA"
+		mask = "**** **** **** 4242"
+	)
 
-	rows := mock.
-		NewRows([]string{"id", "name", "mask"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556", "VISA", "**** **** **** 4242")
-
-	query := `
-	SELECT sc\.id   AS \"id\",
-	       sc\.name AS \"name\",
-		   sc\.mask AS \"mask\"
-	FROM sec_cards sc
-	WHERE sc\.uid = .+? AND
-		  sc\.name ILIKE .+?
-	ORDER BY sc\.name
-	OFFSET .+?
-	LIMIT  .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	countRows := mock.
-		NewRows([]string{"count"}).
-		AddRow(1)
-
-	countQuery := `
-	SELECT count\(\*\) AS \"count\"
-	FROM sec_cards sc
-	WHERE sc\.uid = .+? AND
-		  sc\.name ILIKE .+?;
-	`
-	mock.ExpectPrepare(countQuery)
-	mock.ExpectQuery(countQuery).WillReturnRows(countRows)
+	mockedDB := mocks.NewDB(t).
+		CardSearchMockedDB(id, name, mask)
 
 	type fields struct {
 		db *sqlx.DB
@@ -223,7 +174,7 @@ func TestCardsRepoImpl_Search(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx: ctx,
 				uid: "31487452-31d9-4b1f-a7f8-c00b43372730",
@@ -237,9 +188,9 @@ func TestCardsRepoImpl_Search(t *testing.T) {
 				Count: 1,
 				Items: []*models.CardSearchItem{
 					{
-						ID:   "d89b92df-44e8-4d66-857a-bf7ec0a61556",
-						Name: "VISA",
-						Mask: "**** **** **** 4242",
+						ID:   id,
+						Name: name,
+						Mask: mask,
 					},
 				},
 			},
@@ -265,20 +216,8 @@ func TestCardsRepoImpl_Search(t *testing.T) {
 
 func TestCardsRepoImpl_Remove(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
-
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	query := `
-	DELETE FROM sec_cards
-	WHERE uid = .+? AND
-	      id  = .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows()
+	mockedDB := mocks.NewDB(t).
+		CardRemoveMockedDB()
 
 	type fields struct {
 		db *sqlx.DB
@@ -296,7 +235,7 @@ func TestCardsRepoImpl_Remove(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",

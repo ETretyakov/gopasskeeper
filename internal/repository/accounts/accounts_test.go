@@ -3,33 +3,17 @@ package accounts
 import (
 	"context"
 	"gopasskeeper/internal/domain/models"
+	"gopasskeeper/internal/mocks"
 	"reflect"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 )
 
 func TestAccountsRepoImpl_Add(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
-
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	rows := mock.
-		NewRows([]string{"id"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556")
-
-	query := `
-	INSERT INTO public\.sec_accounts\(uid, login, password, server\)
-	VALUES \(.+?, .+?, .+?, .+?\)
-	RETURNING id;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	accountID := "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+	mockedDB := mocks.NewDB(t).AccountAddMockedDB(accountID)
 
 	type fields struct {
 		db *sqlx.DB
@@ -50,7 +34,7 @@ func TestAccountsRepoImpl_Add(t *testing.T) {
 	}{
 		{
 			name:   "Success 1",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:      ctx,
 				uid:      "31487452-31d9-4b1f-a7f8-c00b43372730",
@@ -58,7 +42,7 @@ func TestAccountsRepoImpl_Add(t *testing.T) {
 				server:   "https://test.com",
 				password: "P@ssWord!",
 			},
-			want:    "d89b92df-44e8-4d66-857a-bf7ec0a61556",
+			want:    accountID,
 			wantErr: false,
 		},
 	}
@@ -81,28 +65,15 @@ func TestAccountsRepoImpl_Add(t *testing.T) {
 
 func TestAccountsRepoImpl_GetSecret(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		login    = "user"
+		server   = "https://test.com"
+		password = "P@ssWord!"
+	)
 
-	rows := mock.
-		NewRows([]string{"login", "server", "password"}).
-		AddRow("user", "https://test.com", "P@ssWord!")
-
-	query := `
-	SELECT sa\.login    AS \"login\",
-		   sa\.server   AS \"server\",
-		   sa\.password AS \"password\"
-	FROM sec_accounts sa
-	WHERE sa\.uid = .+? AND 
-	      sa\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mockedDB := mocks.NewDB(t).
+		AccountGetSecretMockedDB(login, server, password)
 
 	type fields struct {
 		db *sqlx.DB
@@ -121,16 +92,16 @@ func TestAccountsRepoImpl_GetSecret(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:       ctx,
 				uid:       "31487452-31d9-4b1f-a7f8-c00b43372730",
 				accountID: "d89b92df-44e8-4d66-857a-bf7ec0a61556",
 			},
 			want: &models.AccountSecret{
-				Login:    "user",
-				Server:   "https://test.com",
-				Password: "P@ssWord!",
+				Login:    login,
+				Server:   server,
+				Password: password,
 			},
 			wantErr: false,
 		},
@@ -154,45 +125,15 @@ func TestAccountsRepoImpl_GetSecret(t *testing.T) {
 
 func TestAccountsRepoImpl_Search(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		id     = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+		login  = "user"
+		server = "https://test.com"
+	)
 
-	rows := mock.
-		NewRows([]string{"id", "login", "server"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556", "user", "https://test.com")
-
-	query := `
-	SELECT sa\.id       AS \"id\",
-	       sa\.login    AS \"login\",
-		   sa\.server   AS \"server\"
-	FROM sec_accounts sa
-	WHERE sa\.uid = .+? AND
-		  \(sa\.server ILIKE .+? OR
-		   sa\.login  ILIKE .+?\)
-	ORDER BY sa\.server, sa\.login
-	OFFSET .+?
-	LIMIT  .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	countRows := mock.
-		NewRows([]string{"count"}).
-		AddRow(1)
-
-	countQuery := `
-	SELECT count\(\*\) AS \"count\"
-	FROM sec_accounts sa
-	WHERE sa\.uid = .+? AND
-		  \(sa\.server ILIKE .+? OR
-		   sa\.login  ILIKE .+?\);
-	`
-	mock.ExpectPrepare(countQuery)
-	mock.ExpectQuery(countQuery).WillReturnRows(countRows)
+	mockedDB := mocks.NewDB(t).
+		AccountSearchMockedDB(id, login, server)
 
 	type fields struct {
 		db *sqlx.DB
@@ -211,7 +152,7 @@ func TestAccountsRepoImpl_Search(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx: ctx,
 				uid: "31487452-31d9-4b1f-a7f8-c00b43372730",
@@ -253,20 +194,9 @@ func TestAccountsRepoImpl_Search(t *testing.T) {
 
 func TestAccountsRepoImpl_Remove(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	query := `
-	DELETE FROM sec_accounts
-	WHERE uid = .+? AND
-	      id  = .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows()
+	mockedDB := mocks.NewDB(t).
+		AccountRemoveMockedDB()
 
 	type fields struct {
 		db *sqlx.DB
@@ -284,7 +214,7 @@ func TestAccountsRepoImpl_Remove(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:       ctx,
 				uid:       "31487452-31d9-4b1f-a7f8-c00b43372730",

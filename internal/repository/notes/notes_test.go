@@ -3,33 +3,20 @@ package notes
 import (
 	"context"
 	"gopasskeeper/internal/domain/models"
+	"gopasskeeper/internal/mocks"
 	"reflect"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 )
 
 func TestNotesRepoImpl_Add(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const id = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
 
-	rows := mock.
-		NewRows([]string{"id"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556")
-
-	query := `
-	INSERT INTO public\.sec_notes\(uid, name, content\)
-	VALUES \(.+?, .+?, .+?\)
-	RETURNING id;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mockedDB := mocks.NewDB(t).
+		NoteAddMockedDB(id)
 
 	type fields struct {
 		db *sqlx.DB
@@ -49,14 +36,14 @@ func TestNotesRepoImpl_Add(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:     ctx,
 				uid:     "31487452-31d9-4b1f-a7f8-c00b43372730",
 				name:    "note",
 				content: "content",
 			},
-			want:    "d89b92df-44e8-4d66-857a-bf7ec0a61556",
+			want:    id,
 			wantErr: false,
 		},
 	}
@@ -79,27 +66,13 @@ func TestNotesRepoImpl_Add(t *testing.T) {
 
 func TestNotesRepoImpl_GetSecret(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	rows := mock.
-		NewRows([]string{"name", "content"}).
-		AddRow("note", "content")
-
-	query := `
-	SELECT sn\.name   AS \"name\",
-		   sn\.content AS \"content\"
-	FROM sec_notes sn
-	WHERE sn\.uid = .+? AND 
-	      sn\.id  = .+?
-	LIMIT 1;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	const (
+		name    = "note"
+		content = "content"
+	)
+	mockedDB := mocks.NewDB(t).
+		NoteGetSecretMockedDB(name, content)
 
 	type fields struct {
 		db *sqlx.DB
@@ -117,15 +90,15 @@ func TestNotesRepoImpl_GetSecret(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",
 				noteID: "d89b92df-44e8-4d66-857a-bf7ec0a61556",
 			},
 			want: &models.NoteSecret{
-				Name:    "note",
-				Content: "content",
+				Name:    name,
+				Content: content,
 			},
 			wantErr: false,
 		},
@@ -149,42 +122,14 @@ func TestNotesRepoImpl_GetSecret(t *testing.T) {
 
 func TestNotesRepoImpl_Search(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+	const (
+		id   = "d89b92df-44e8-4d66-857a-bf7ec0a61556"
+		name = "note"
+	)
 
-	rows := mock.
-		NewRows([]string{"id", "name"}).
-		AddRow("d89b92df-44e8-4d66-857a-bf7ec0a61556", "note")
-
-	query := `
-	SELECT sn\.id   AS \"id\",
-	       sn\.name AS \"name\"
-	FROM sec_notes sn
-	WHERE sn\.uid = .+? AND
-		  sn\.name ILIKE .+?
-	ORDER BY sn\.name
-	OFFSET .+?
-	LIMIT  .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
-	countRows := mock.
-		NewRows([]string{"count"}).
-		AddRow(1)
-
-	countQuery := `
-	SELECT count\(\*\) AS \"count\"
-	FROM sec_notes sn
-	WHERE sn\.uid = .+? AND
-		  sn\.name ILIKE .+?;
-	`
-	mock.ExpectPrepare(countQuery)
-	mock.ExpectQuery(countQuery).WillReturnRows(countRows)
+	mockedDB := mocks.NewDB(t).
+		NoteSearchMockedDB(id, name)
 
 	type fields struct {
 		db *sqlx.DB
@@ -203,7 +148,7 @@ func TestNotesRepoImpl_Search(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx: ctx,
 				uid: "31487452-31d9-4b1f-a7f8-c00b43372730",
@@ -244,20 +189,9 @@ func TestNotesRepoImpl_Search(t *testing.T) {
 
 func TestNotesRepoImpl_Remove(t *testing.T) {
 	ctx := context.Background()
-	mockDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.FailNow()
-	}
 
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	query := `
-	DELETE FROM sec_notes
-	WHERE uid = .+? AND
-	      id  = .+?;
-	`
-	mock.ExpectPrepare(query)
-	mock.ExpectQuery(query).WillReturnRows()
+	mockedDB := mocks.NewDB(t).
+		NoteRemoveMockedDB()
 
 	type fields struct {
 		db *sqlx.DB
@@ -275,7 +209,7 @@ func TestNotesRepoImpl_Remove(t *testing.T) {
 	}{
 		{
 			name:   "Success",
-			fields: fields{db: sqlxDB},
+			fields: fields{db: mockedDB.Get()},
 			args: args{
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",

@@ -135,6 +135,7 @@ func (r *AccountsRepoImpl) Search(
 		logger.Error("failed to query row context", err)
 		return nil, errors.Wrap(err, op)
 	}
+	defer rows.Close()
 
 	var items []*models.AccountSearchItem
 	for rows.Next() {
@@ -145,6 +146,10 @@ func (r *AccountsRepoImpl) Search(
 		}
 
 		items = append(items, &accountSearchItem)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, op)
 	}
 
 	// selecting count

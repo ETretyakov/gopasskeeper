@@ -145,6 +145,7 @@ func (r *CardsRepoImpl) Search(
 		logger.Error("failed to query row context", err)
 		return nil, errors.Wrap(err, op)
 	}
+	defer rows.Close()
 
 	var items []*models.CardSearchItem
 	for rows.Next() {
@@ -155,6 +156,10 @@ func (r *CardsRepoImpl) Search(
 		}
 
 		items = append(items, &cardSearchItem)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, op)
 	}
 
 	// selecting count

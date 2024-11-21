@@ -127,6 +127,7 @@ func (r *FilesRepoImpl) Search(
 		logger.Error("failed to query row context", err)
 		return nil, errors.Wrap(err, op)
 	}
+	defer rows.Close()
 
 	var items []*models.FileSearchItem
 	for rows.Next() {
@@ -137,6 +138,10 @@ func (r *FilesRepoImpl) Search(
 		}
 
 		items = append(items, &fileSearchItem)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, op)
 	}
 
 	// selecting count

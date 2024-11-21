@@ -36,7 +36,7 @@ type App struct {
 
 var appliaction *tview.Application
 
-func New(api *API) *App {
+func New(version string, api *API) *App {
 	app := tview.NewApplication()
 	appliaction = app
 	pages := tview.NewPages()
@@ -65,6 +65,7 @@ func New(api *API) *App {
 		api.AuthAPI,
 		pages,
 		func() { initWidgetsContent(accountsPage, cardsPage, notesPage, filesPage, api.SyncAPI) },
+		version,
 	)
 	pages.AddPage(registry.AuthWidgetPage, authPage.Flex(), true, true)
 

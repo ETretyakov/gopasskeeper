@@ -130,6 +130,7 @@ func (r *NotesRepoImpl) Search(
 		logger.Error("failed to query row context", err)
 		return nil, errors.Wrap(err, op)
 	}
+	defer rows.Close()
 
 	var items []*models.NoteSearchItem
 	for rows.Next() {
@@ -140,6 +141,10 @@ func (r *NotesRepoImpl) Search(
 		}
 
 		items = append(items, &noteSearchItem)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, op)
 	}
 
 	// selecting count

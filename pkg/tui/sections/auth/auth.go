@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"gopasskeeper/pkg/tui/modals"
 	"gopasskeeper/pkg/tui/registry"
 	"gopasskeeper/pkg/tui/styles"
@@ -22,6 +23,7 @@ func New(
 	api API,
 	pages *tview.Pages,
 	returnCallback func(),
+	version string,
 ) *AuthWidget {
 	const (
 		inputFieldWidth int  = 33
@@ -39,7 +41,7 @@ func New(
 	flex := tview.NewFlex()
 
 	form := tview.NewForm()
-	form.SetTitle(" Server ")
+	form.SetTitle(fmt.Sprintf(" Server (%s) ", version))
 	styles.ApplyFormStyle(form)
 
 	form.

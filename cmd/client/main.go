@@ -6,6 +6,10 @@ import (
 	"gopasskeeper/pkg/tui/api"
 )
 
+var (
+	Version string
+)
+
 type DefaultClientConfig struct{}
 
 func (c *DefaultClientConfig) CertPath() string {
@@ -22,7 +26,7 @@ func main() {
 		FilesAPI:    api,
 		SyncAPI:     api,
 	}
-	app := tui.New(tuiAPI)
+	app := tui.New(Version, tuiAPI)
 
 	if err := app.Run(); err != nil {
 		fmt.Printf("got error: %+v", err)

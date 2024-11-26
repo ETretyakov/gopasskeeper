@@ -70,7 +70,7 @@ func (a *API) GetFile(uuid string, filePath string) (string, error) {
 	), nil
 }
 
-func (a *API) AddFile(name, filePath string) error {
+func (a *API) AddFile(name, filePath, meta string) error {
 	if a.client == nil {
 		return nil
 	}
@@ -88,6 +88,7 @@ func (a *API) AddFile(name, filePath string) error {
 		&filesv1.FileAddRequest{
 			Name:    name,
 			Content: content,
+			Meta:    meta,
 		},
 	)
 	if err != nil {

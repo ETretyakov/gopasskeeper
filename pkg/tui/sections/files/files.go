@@ -16,7 +16,7 @@ import (
 type API interface {
 	SearchFile(substring string, offset uint64, limit uint32) (*filesv1.FileSearchResponse, error)
 	GetFile(uuid, filePath string) (string, error)
-	AddFile(name, content string) error
+	AddFile(name, content, meta string) error
 	RemoveFile(secredID string) error
 }
 
@@ -466,13 +466,13 @@ func (t *FilesTable) Clean() {
 }
 
 func NewAddFile(
-	callbackAdd func(name, filePath string) error,
+	callbackAdd func(name, filePath, meta string) error,
 	callbackRefresh func(),
 	callbackReturn func(),
 ) *tview.Flex {
 	const (
 		inputFieldWidth int  = 34
-		formWidth       int  = 10
+		formWidth       int  = 13
 		formHeight      int  = 47
 		fieldHight      int  = 5
 		resizable       int  = 0
@@ -501,10 +501,14 @@ func NewAddFile(
 		AddInputField("FilePath:", "", inputFieldWidth, nil, func(filePath string) {
 			fileAdd.filePath = filePath
 		}).
+		AddInputField("Meta:", "", inputFieldWidth, nil, func(meta string) {
+			fileAdd.meta = meta
+		}).
 		AddButton("Add", func() {
 			if err := callbackAdd(
 				fileAdd.name,
 				fileAdd.filePath,
+				fileAdd.meta,
 			); err != nil {
 				infoLine.SetText(fmt.Sprintf("%s", err))
 			} else {

@@ -10,4 +10,5 @@ type SearchInput struct {
 type NoteAdd struct {
 	name    string
 	content string
+	meta    string
 }

@@ -11,4 +11,5 @@ type AccountAdd struct {
 	server   string
 	login    string
 	password string
+	meta     string
 }

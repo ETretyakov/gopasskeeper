@@ -10,4 +10,5 @@ type SearchInput struct {
 type FileAdd struct {
 	name     string
 	filePath string
+	meta     string
 }

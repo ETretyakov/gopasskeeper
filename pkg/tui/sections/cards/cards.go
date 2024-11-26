@@ -16,7 +16,7 @@ import (
 type API interface {
 	SearchCard(substring string, offset uint64, limit uint32) (*cardsv1.CardSearchResponse, error)
 	GetCard(uuid string) (string, error)
-	AddCard(name, number string, month, year int32, ccv, pin string) error
+	AddCard(name, number string, month, year int32, ccv, pin, meta string) error
 	RemoveCard(secredID string) error
 }
 
@@ -468,13 +468,13 @@ func (t *CardsTable) Clean() {
 }
 
 func NewAddCard(
-	callbackAdd func(name, number string, month, year int32, ccv, pin string) error,
+	callbackAdd func(name, number string, month, year int32, ccv, pin, meta string) error,
 	callbackRefresh func(),
 	callbackReturn func(),
 ) *tview.Flex {
 	const (
 		inputFieldWidth int  = 34
-		formWidth       int  = 17
+		formWidth       int  = 20
 		formHeight      int  = 47
 		fieldWidth      int  = 47
 		fieldHight      int  = 5
@@ -524,6 +524,9 @@ func NewAddCard(
 		AddInputField("PIN:", "", inputFieldWidth, nil, func(pin string) {
 			cardAdd.pin = pin
 		}).
+		AddInputField("Meta:", "", inputFieldWidth, nil, func(meta string) {
+			cardAdd.meta = meta
+		}).
 		AddButton("Add", func() {
 			if err := callbackAdd(
 				cardAdd.name,
@@ -532,6 +535,7 @@ func NewAddCard(
 				cardAdd.year,
 				cardAdd.cvc,
 				cardAdd.pin,
+				cardAdd.meta,
 			); err != nil {
 				infoLine.SetText(fmt.Sprintf("%s", err))
 			} else {

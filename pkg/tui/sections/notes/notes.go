@@ -16,7 +16,7 @@ import (
 type API interface {
 	SearchNote(substring string, offset uint64, limit uint32) (*notesv1.NoteSearchResponse, error)
 	GetNote(uuid string) (string, error)
-	AddNote(name, content string) error
+	AddNote(name, content, meta string) error
 	RemoveNote(secredID string) error
 }
 
@@ -454,13 +454,13 @@ func (t *NotesTable) Clean() {
 }
 
 func NewAddNote(
-	callbackAdd func(name, content string) error,
+	callbackAdd func(name, content, string string) error,
 	callbackRefresh func(),
 	callbackReturn func(),
 ) *tview.Flex {
 	const (
 		inputFieldWidth int  = 34
-		formWidth       int  = 17
+		formWidth       int  = 19
 		textAreaHeight  int  = 9
 		formHeight      int  = 47
 		fieldWidth      int  = 47
@@ -491,10 +491,14 @@ func NewAddNote(
 		AddTextArea("Content:", "", inputFieldWidth, textAreaHeight, textAreaHeight, func(content string) {
 			noteAdd.content = content
 		}).
+		AddInputField("Meta:", "", inputFieldWidth, nil, func(meta string) {
+			noteAdd.meta = meta
+		}).
 		AddButton("Add", func() {
 			if err := callbackAdd(
 				noteAdd.name,
 				noteAdd.content,
+				noteAdd.meta,
 			); err != nil {
 				infoLine.SetText(fmt.Sprintf("%s", err))
 			} else {

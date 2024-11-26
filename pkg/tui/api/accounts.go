@@ -54,14 +54,15 @@ func (a *API) GetAccount(uuid string) (string, error) {
 	}
 
 	return fmt.Sprintf(
-		"SERVICE: %s\nLOGIN: %s\nPASSWROD: %s",
+		"SERVICE: %s\nLOGIN: %s\nPASSWROD: %s\nMETA: %s",
 		resp.GetServer(),
 		resp.GetLogin(),
 		resp.GetPassword(),
+		resp.GetMeta(),
 	), nil
 }
 
-func (a *API) AddAccount(server, login, password string) error {
+func (a *API) AddAccount(server, login, password, meta string) error {
 	if a.client == nil {
 		return nil
 	}
@@ -75,6 +76,7 @@ func (a *API) AddAccount(server, login, password string) error {
 			Login:    login,
 			Server:   server,
 			Password: password,
+			Meta:     meta,
 		},
 	)
 	if err != nil {

@@ -16,7 +16,7 @@ import (
 type API interface {
 	SearchAccount(substring string, offset uint64, limit uint32) (*accountsv1.AccountSearchResponse, error)
 	GetAccount(uuid string) (string, error)
-	AddAccount(server, login, password string) error
+	AddAccount(server, login, password, meta string) error
 	RemoveAccount(secredID string) error
 }
 
@@ -468,13 +468,13 @@ func (t *AccountsTable) Clean() {
 }
 
 func NewAddAccount(
-	callbackAdd func(server, login, password string) error,
+	callbackAdd func(server, login, password, meta string) error,
 	callbackRefresh func(),
 	callbackReturn func(),
 ) *tview.Flex {
 	const (
 		inputFieldWidth int  = 34
-		formWidth       int  = 11
+		formWidth       int  = 14
 		formHeight      int  = 47
 		fieldWidth      int  = 47
 		fieldHight      int  = 5
@@ -507,11 +507,15 @@ func NewAddAccount(
 		AddPasswordField("Password:", "", inputFieldWidth, '*', func(password string) {
 			accountAdd.password = password
 		}).
+		AddInputField("Meta:", "", inputFieldWidth, nil, func(meta string) {
+			accountAdd.meta = meta
+		}).
 		AddButton("Add", func() {
 			if err := callbackAdd(
 				accountAdd.server,
 				accountAdd.login,
 				accountAdd.password,
+				accountAdd.meta,
 			); err != nil {
 				infoLine.SetText(fmt.Sprintf("%s", err))
 			} else {

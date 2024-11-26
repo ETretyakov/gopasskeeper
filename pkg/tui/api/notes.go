@@ -54,13 +54,14 @@ func (a *API) GetNote(uuid string) (string, error) {
 	}
 
 	return fmt.Sprintf(
-		"NAME: %s\nCONTENT: %s",
+		"NAME: %s\nCONTENT: %s\nMETA: %s",
 		resp.GetName(),
 		resp.GetContent(),
+		resp.GetMeta(),
 	), nil
 }
 
-func (a *API) AddNote(name, content string) error {
+func (a *API) AddNote(name, content, meta string) error {
 	if a.client == nil {
 		return nil
 	}
@@ -73,6 +74,7 @@ func (a *API) AddNote(name, content string) error {
 		&notesv1.NoteAddRequest{
 			Name:    name,
 			Content: content,
+			Meta:    meta,
 		},
 	)
 	if err != nil {

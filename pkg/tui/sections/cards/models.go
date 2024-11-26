@@ -14,4 +14,5 @@ type CardAdd struct {
 	year   int32
 	cvc    string
 	pin    string
+	meta   string
 }

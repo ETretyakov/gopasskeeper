@@ -54,17 +54,18 @@ func (a *API) GetCard(uuid string) (string, error) {
 	}
 
 	return fmt.Sprintf(
-		"NAME: %s\nNUMBER: %s\nMONTH: %d\nYEAR: %d\nCVC: %s\nPIN:%s",
+		"NAME: %s\nNUMBER: %s\nMONTH: %d\nYEAR: %d\nCVC: %s\nPIN: %s\nMETA:%s",
 		resp.GetName(),
 		resp.GetNumber(),
 		resp.GetMonth(),
 		resp.GetYear(),
 		resp.GetCvc(),
 		resp.GetPin(),
+		resp.GetMeta(),
 	), nil
 }
 
-func (a *API) AddCard(name, number string, month, year int32, ccv, pin string) error {
+func (a *API) AddCard(name, number string, month, year int32, ccv, pin, meta string) error {
 	if a.client == nil {
 		return nil
 	}
@@ -81,6 +82,7 @@ func (a *API) AddCard(name, number string, month, year int32, ccv, pin string) e
 			Year:   year,
 			Cvc:    ccv,
 			Pin:    pin,
+			Meta:   meta,
 		},
 	)
 	if err != nil {

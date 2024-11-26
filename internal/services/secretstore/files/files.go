@@ -71,14 +71,20 @@ func New(
 	fileStorage FileStorage,
 	syncStorage SyncStorage,
 ) (*Files, error) {
+	fernetEncryptor, err := crypto.NewFernet(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build fernet encryptor")
+	}
+
 	aesEncryptor := crypto.NewAESEncryptor(cfg)
 
 	return &Files{
-		log:          logger.NewGRPCLogger("files"),
-		aesEncryptor: aesEncryptor,
-		fileStorage:  fileStorage,
-		s3Client:     s3Client,
-		syncStorage:  syncStorage,
+		log:             logger.NewGRPCLogger("files"),
+		aesEncryptor:    aesEncryptor,
+		fernetEncryptor: fernetEncryptor,
+		fileStorage:     fileStorage,
+		s3Client:        s3Client,
+		syncStorage:     syncStorage,
 	}, nil
 }
 

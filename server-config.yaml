@@ -7,9 +7,9 @@ app:
 s3:
   host: 127.0.0.1
   port: 9000
-  accessKey: pwb1OknjOtg3HxhIxwOI
+  accessKey: QxfUSQmezwMTA1vZ4fcp
   bucket: storage-dev
-  secretAccess: 2HjWjtpoPaYs0jrXhvYgJlVzhN0F3WyuTI6WXRsS
+  secretAccess: GRUjNMif9fML7n0uISidnMOU6n6XyjtKkG0ED8pM
 postgresql:
   host: 127.0.0.1
   port: 5442

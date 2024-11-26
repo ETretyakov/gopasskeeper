@@ -34,6 +34,7 @@ func TestNotes_Add(t *testing.T) {
 		uid     string
 		name    string
 		content string
+		meta    string
 	}
 	tests := []struct {
 		name    string
@@ -54,6 +55,7 @@ func TestNotes_Add(t *testing.T) {
 				uid:     "31487452-31d9-4b1f-a7f8-c00b43372730",
 				name:    "note",
 				content: "content",
+				meta:    "meta",
 			},
 			want: &models.Message{
 				Status: true,
@@ -70,7 +72,7 @@ func TestNotes_Add(t *testing.T) {
 				noteStorage:     tt.fields.noteStorage,
 				syncStorage:     tt.fields.syncStorage,
 			}
-			got, err := c.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.content)
+			got, err := c.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.content, tt.args.meta)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Notes.Add() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -88,13 +90,15 @@ func TestNotes_GetSecret(t *testing.T) {
 	const (
 		name    = "note"
 		content = "content"
+		meta    = "meta"
 	)
 
 	fernetEncryptor := mocks.NewFernet(t)
 	encContent, _ := fernetEncryptor.Encrypt([]byte(content))
+	encMeta, _ := fernetEncryptor.Encrypt([]byte(meta))
 
 	mockedDB := mocks.NewDB(t).
-		NoteGetSecretMockedDB(name, string(encContent[:]))
+		NoteGetSecretMockedDB(name, string(encContent[:]), string(encMeta[:]))
 
 	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
@@ -133,6 +137,7 @@ func TestNotes_GetSecret(t *testing.T) {
 			want: &models.NoteSecret{
 				Name:    name,
 				Content: content,
+				Meta:    meta,
 			},
 			wantErr: false,
 		},

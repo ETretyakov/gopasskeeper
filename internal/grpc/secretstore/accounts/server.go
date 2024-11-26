@@ -29,6 +29,7 @@ type Accounts interface {
 		login string,
 		server string,
 		password string,
+		meta string,
 	) (*models.Message, error)
 	GetSecret(
 		ctx context.Context,
@@ -72,6 +73,7 @@ func (s *serverAPI) Add(
 		in.GetLogin(),
 		in.GetServer(),
 		in.GetPassword(),
+		in.GetMeta(),
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed add account")
@@ -107,6 +109,7 @@ func (s *serverAPI) GetSecret(
 		Login:    accountSecret.Login,
 		Server:   accountSecret.Server,
 		Password: accountSecret.Password,
+		Meta:     accountSecret.Meta,
 	}, nil
 }
 

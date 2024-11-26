@@ -25,6 +25,7 @@ type Notes interface {
 		uid string,
 		name string,
 		content string,
+		meta string,
 	) (*models.Message, error)
 	GetSecret(
 		ctx context.Context,
@@ -66,7 +67,7 @@ func (s *serverAPI) Add(
 		return nil, status.Error(codes.InvalidArgument, "note must have content")
 	}
 
-	msg, err := s.notes.Add(ctx, uid, in.GetName(), in.GetContent())
+	msg, err := s.notes.Add(ctx, uid, in.GetName(), in.GetContent(), in.GetMeta())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed add note")
 	}
@@ -100,6 +101,7 @@ func (s *serverAPI) GetSecret(
 	return &notesv1.NoteSecretResponse{
 		Name:    noteSecret.Name,
 		Content: noteSecret.Content,
+		Meta:    noteSecret.Meta,
 	}, nil
 }
 

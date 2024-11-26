@@ -6,8 +6,8 @@ func (mdb *MockedDB) FileAddMockedDB(id string) *MockedDB {
 		AddRow(id)
 
 	query := `
-	INSERT INTO public\.sec_files\(uid, name\)
-	VALUES \(.+?, .+?\)
+	INSERT INTO public\.sec_files\(uid, name, meta\)
+	VALUES \(.+?, .+?, .+?\)
 	RETURNING id;
 	`
 	mdb.mock.ExpectPrepare(query)
@@ -16,13 +16,14 @@ func (mdb *MockedDB) FileAddMockedDB(id string) *MockedDB {
 	return mdb
 }
 
-func (mdb *MockedDB) FileGetSecretMockedDB(name string) *MockedDB {
+func (mdb *MockedDB) FileGetSecretMockedDB(name, meta string) *MockedDB {
 	rows := mdb.mock.
-		NewRows([]string{"name"}).
-		AddRow(name)
+		NewRows([]string{"name", "meta"}).
+		AddRow(name, meta)
 
 	query := `
-	SELECT sf\.name   AS \"name\"
+	SELECT sf\.name   AS \"name\",
+	       sf\.meta   AS \"meta\"
 	FROM sec_files sf
 	WHERE sf\.uid = .+? AND 
 	      sf\.id  = .+?

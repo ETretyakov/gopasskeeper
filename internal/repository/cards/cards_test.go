@@ -29,6 +29,7 @@ func TestCardsRepoImpl_Add(t *testing.T) {
 		year   int32
 		cvc    string
 		pin    string
+		meta   string
 	}
 	tests := []struct {
 		name    string
@@ -50,6 +51,7 @@ func TestCardsRepoImpl_Add(t *testing.T) {
 				year:   2025,
 				cvc:    "777",
 				pin:    "1111",
+				meta:   "meta",
 			},
 			want:    id,
 			wantErr: false,
@@ -60,7 +62,7 @@ func TestCardsRepoImpl_Add(t *testing.T) {
 			r := &CardsRepoImpl{
 				db: tt.fields.db,
 			}
-			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.number, tt.args.mask, tt.args.month, tt.args.year, tt.args.cvc, tt.args.pin)
+			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.number, tt.args.mask, tt.args.month, tt.args.year, tt.args.cvc, tt.args.pin, tt.args.meta)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CardsRepoImpl.Add() error = %v, wantErr %v", err, tt.wantErr)
 				return

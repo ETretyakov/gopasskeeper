@@ -24,12 +24,13 @@ func (r *FilesRepoImpl) Add(
 	ctx context.Context,
 	uid string,
 	name string,
+	meta string,
 ) (string, error) {
 	const op = "repository.Files.Add"
 
 	stmt := `
-	INSERT INTO public.sec_files(uid, name)
-	VALUES (:uid, :name)
+	INSERT INTO public.sec_files(uid, name, meta)
+	VALUES (:uid, :name, :meta)
 	RETURNING id;
 	`
 
@@ -42,6 +43,7 @@ func (r *FilesRepoImpl) Add(
 	arg := map[string]interface{}{
 		"uid":  uid,
 		"name": name,
+		"meta": meta,
 	}
 
 	var fileID string
@@ -58,11 +60,12 @@ func (r *FilesRepoImpl) GetSecret(
 	ctx context.Context,
 	uid string,
 	fileID string,
-) (string, error) {
+) (string, string, error) {
 	const op = "repository.Files.GetSecret"
 
 	stmt := `
-	SELECT sf.name   AS "name"
+	SELECT sf.name   AS "name",
+	       sf.meta   AS "meta"
 	FROM sec_files sf
 	WHERE sf.uid = :uid AND 
 	      sf.id  = :file_id
@@ -72,7 +75,7 @@ func (r *FilesRepoImpl) GetSecret(
 	namedStmt, err := r.db.PrepareNamedContext(ctx, stmt)
 	if err != nil {
 		logger.Error("failed to prepare named context", err)
-		return "", errors.Wrap(err, op)
+		return "", "", errors.Wrap(err, op)
 	}
 
 	arg := map[string]interface{}{
@@ -81,12 +84,13 @@ func (r *FilesRepoImpl) GetSecret(
 	}
 
 	name := ""
-	if err := namedStmt.QueryRowxContext(ctx, arg).Scan(&name); err != nil {
+	meta := ""
+	if err := namedStmt.QueryRowxContext(ctx, arg).Scan(&name, &meta); err != nil {
 		logger.Error("failed to query row context", err)
-		return "", errors.Wrap(err, op)
+		return "", "", errors.Wrap(err, op)
 	}
 
-	return name, nil
+	return name, meta, nil
 }
 
 // Search is a repository method to search records.

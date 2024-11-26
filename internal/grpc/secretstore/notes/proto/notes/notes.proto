@@ -14,6 +14,7 @@ service Notes {
 message NoteAddRequest {
     string name = 1;
     string content = 2;
+    string meta = 3;
 }
 
 message NoteAddResponse {
@@ -28,6 +29,7 @@ message NoteSecretRequest {
 message NoteSecretResponse {
     string name = 1;
     string content = 2;
+    string meta = 3;
 }
 
 message NoteSearchRequest {

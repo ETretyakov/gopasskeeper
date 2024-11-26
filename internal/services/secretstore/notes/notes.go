@@ -22,6 +22,7 @@ type NoteStorage interface {
 		uid string,
 		name string,
 		content string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
@@ -78,6 +79,7 @@ func (c *Notes) Add(
 	uid string,
 	name string,
 	content string,
+	meta string,
 ) (*models.Message, error) {
 	const op = "Notes.Add"
 	log := c.log.WithOperator(op)
@@ -88,11 +90,17 @@ func (c *Notes) Add(
 		return nil, errors.Wrap(err, "failed to encrypt pin")
 	}
 
+	encMeta, err := c.fernetEncryptor.Encrypt([]byte(meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encrypt meta")
+	}
+
 	noteID, err := c.noteStorage.Add(
 		ctx,
 		uid,
 		name,
 		string(encContent[:]),
+		string(encMeta[:]),
 	)
 	if err != nil {
 		log.Error("failed to save note", err)
@@ -131,6 +139,12 @@ func (c *Notes) GetSecret(
 		return nil, errors.Wrap(err, "failed to decrypt pin")
 	}
 	noteSecret.Content = string(decContent[:])
+
+	decMeta, err := c.fernetEncryptor.Decrypt([]byte(noteSecret.Meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decrypt meta")
+	}
+	noteSecret.Meta = string(decMeta[:])
 
 	return noteSecret, nil
 }

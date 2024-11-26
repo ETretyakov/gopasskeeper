@@ -8,6 +8,7 @@ type CardSecret struct {
 	Year   int32  `db:"year"`
 	CVC    string `db:"cvc"`
 	PIN    string `db:"pin"`
+	Meta   string `db:"meta"`
 }
 
 // CardSearchRequest is a structure to describe card search request.

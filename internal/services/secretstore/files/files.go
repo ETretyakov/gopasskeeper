@@ -23,12 +23,13 @@ type FileStorage interface {
 		ctx context.Context,
 		uid string,
 		name string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
 		uid string,
 		fileID string,
-	) (string, error)
+	) (string, string, error)
 	Search(
 		ctx context.Context,
 		uid string,
@@ -55,11 +56,12 @@ type SyncStorage interface {
 
 // Files is a structure to define files service.
 type Files struct {
-	log          *logger.GRPCLogger
-	aesEncryptor *crypto.AESEncryptor
-	fileStorage  FileStorage
-	s3Client     S3Client
-	syncStorage  SyncStorage
+	log             *logger.GRPCLogger
+	aesEncryptor    *crypto.AESEncryptor
+	fernetEncryptor *crypto.FernetEncryptor
+	fileStorage     FileStorage
+	s3Client        S3Client
+	syncStorage     SyncStorage
 }
 
 // New is a builder function for files service.
@@ -86,6 +88,7 @@ func (c *Files) Add(
 	uid string,
 	name string,
 	content []byte,
+	meta string,
 ) (*models.Message, error) {
 	const op = "Files.Add"
 	log := c.log.WithOperator(op)
@@ -102,10 +105,16 @@ func (c *Files) Add(
 		return nil, errors.Wrap(err, "failed save file")
 	}
 
+	encMeta, err := c.fernetEncryptor.Encrypt([]byte(meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encrypt meta")
+	}
+
 	fileID, err := c.fileStorage.Add(
 		ctx,
 		uid,
 		name,
+		string(encMeta[:]),
 	)
 	if err != nil {
 		log.Error("failed to save file", err)
@@ -133,7 +142,7 @@ func (c *Files) GetSecret(
 	log := c.log.WithOperator(op)
 	log.Info("getting secret", "uid", uid)
 
-	name, err := c.fileStorage.GetSecret(ctx, uid, fileID)
+	name, meta, err := c.fileStorage.GetSecret(ctx, uid, fileID)
 	if err != nil {
 		log.Error("failed to get file secret", err)
 		return nil, errors.Wrap(err, op)
@@ -150,9 +159,15 @@ func (c *Files) GetSecret(
 		return nil, errors.Wrap(err, "failed to decrypt pin")
 	}
 
+	decMeta, err := c.fernetEncryptor.Decrypt([]byte(meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decrypt meta")
+	}
+
 	return &models.FileSecret{
 		Name:    name,
 		Content: decContent,
+		Meta:    string(decMeta[:]),
 	}, nil
 }
 
@@ -185,7 +200,7 @@ func (c *Files) Remove(
 	log := c.log.WithOperator(op)
 	log.Info("removing record", "uid", uid)
 
-	name, err := c.fileStorage.GetSecret(ctx, uid, fileID)
+	name, _, err := c.fileStorage.GetSecret(ctx, uid, fileID)
 	if err != nil {
 		log.Error("failed to get file secret", err)
 		return nil, errors.Wrap(err, op)

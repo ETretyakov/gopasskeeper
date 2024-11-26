@@ -34,6 +34,7 @@ func TestAccounts_Add(t *testing.T) {
 		login    string
 		server   string
 		password string
+		meta     string
 	}
 	tests := []struct {
 		name    string
@@ -71,7 +72,7 @@ func TestAccounts_Add(t *testing.T) {
 				accountStorage:  tt.fields.accountStorage,
 				syncStorage:     tt.fields.syncStorage,
 			}
-			got, err := a.Add(tt.args.ctx, tt.args.uid, tt.args.login, tt.args.server, tt.args.password)
+			got, err := a.Add(tt.args.ctx, tt.args.uid, tt.args.login, tt.args.server, tt.args.password, tt.args.meta)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Accounts.Add() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -90,13 +91,15 @@ func TestAccounts_GetSecret(t *testing.T) {
 		login    = "user"
 		server   = "https://test.com"
 		password = "P@ssWord!"
+		meta     = "meta"
 	)
 
 	fernetEncryptor := mocks.NewFernet(t)
 	encPass, _ := fernetEncryptor.Encrypt([]byte(password))
+	encMeta, _ := fernetEncryptor.Encrypt([]byte(meta))
 
 	mockedDB := mocks.NewDB(t).
-		AccountGetSecretMockedDB(login, server, string(encPass[:])).
+		AccountGetSecretMockedDB(login, server, string(encPass[:]), string(encMeta[:])).
 		AddSyncMocks()
 
 	repo := repository.New(mockedDB.Get())
@@ -137,6 +140,7 @@ func TestAccounts_GetSecret(t *testing.T) {
 				Login:    login,
 				Server:   server,
 				Password: password,
+				Meta:     meta,
 			},
 			wantErr: false,
 		},

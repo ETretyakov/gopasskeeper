@@ -25,6 +25,7 @@ type Files interface {
 		uid string,
 		name string,
 		content []byte,
+		meta string,
 	) (*models.Message, error)
 	GetSecret(
 		ctx context.Context,
@@ -57,7 +58,7 @@ func (s *serverAPI) Add(
 		return nil, status.Error(codes.InvalidArgument, "failed extract uid")
 	}
 
-	msg, err := s.files.Add(ctx, uid, in.GetName(), in.GetContent())
+	msg, err := s.files.Add(ctx, uid, in.GetName(), in.GetContent(), in.GetMeta())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed add file")
 	}
@@ -91,6 +92,7 @@ func (s *serverAPI) GetSecret(
 	return &filesv1.FileSecretResponse{
 		Name:    fileSecret.Name,
 		Content: fileSecret.Content,
+		Meta:    fileSecret.Meta,
 	}, nil
 }
 

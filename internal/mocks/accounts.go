@@ -16,15 +16,16 @@ func (mdb *MockedDB) AccountAddMockedDB(accountID string) *MockedDB {
 	return mdb
 }
 
-func (mdb *MockedDB) AccountGetSecretMockedDB(login, server, password string) *MockedDB {
+func (mdb *MockedDB) AccountGetSecretMockedDB(login, server, password, meta string) *MockedDB {
 	rows := mdb.mock.
-		NewRows([]string{"login", "server", "password"}).
-		AddRow(login, server, password)
+		NewRows([]string{"login", "server", "password", "meta"}).
+		AddRow(login, server, password, meta)
 
 	query := `
 	SELECT sa\.login    AS \"login\",
 		   sa\.server   AS \"server\",
-		   sa\.password AS \"password\"
+		   sa\.password AS \"password\",
+		   sa\.meta     AS \"meta\"
 	FROM sec_accounts sa
 	WHERE sa\.uid = .+? AND 
 	      sa\.id  = .+?

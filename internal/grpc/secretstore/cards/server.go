@@ -32,6 +32,7 @@ type Cards interface {
 		year int32,
 		cvc string,
 		pin string,
+		meta string,
 	) (*models.Message, error)
 	GetSecret(
 		ctx context.Context,
@@ -66,6 +67,7 @@ func (s *serverAPI) Add(
 		in.GetYear(),
 		in.GetCvc(),
 		in.GetPin(),
+		in.GetMeta(),
 	)
 
 	if err := creditCard.Validate(); err != nil {
@@ -88,6 +90,7 @@ func (s *serverAPI) Add(
 		creditCard.Year,
 		creditCard.CVC,
 		creditCard.PIN,
+		creditCard.Meta,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed add card")
@@ -126,6 +129,7 @@ func (s *serverAPI) GetSecret(
 		Year:   cardSecret.Year,
 		Cvc:    cardSecret.CVC,
 		Pin:    cardSecret.PIN,
+		Meta:   cardSecret.Meta,
 	}, nil
 }
 

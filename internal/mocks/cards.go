@@ -6,8 +6,8 @@ func (mdb *MockedDB) CardAddMockedDB(id string) *MockedDB {
 		AddRow(id)
 
 	query := `
-	INSERT INTO public\.sec_cards\(uid, name, number, mask, month, year, cvc, pin\)
-	VALUES \(.+?, .+?, .+?, .+?, .+?, .+?, .+?, .+?\)
+	INSERT INTO public\.sec_cards\(uid, name, number, mask, month, year, cvc, pin, meta\)
+	VALUES \(.+?, .+?, .+?, .+?, .+?, .+?, .+?, .+?, .+?\)
 	RETURNING id;
 	`
 	mdb.mock.ExpectPrepare(query)
@@ -22,7 +22,7 @@ func (mdb *MockedDB) CardGetSecretMockedDB(
 	cvc, pin string,
 ) *MockedDB {
 	rows := mdb.mock.
-		NewRows([]string{"name", "number", "month", "year", "cvc", "pin"}).
+		NewRows([]string{"name", "number", "month", "year", "cvc", "pin", "meta"}).
 		AddRow(name, number, month, year, cvc, pin)
 
 	query := `
@@ -31,7 +31,8 @@ func (mdb *MockedDB) CardGetSecretMockedDB(
 		   sc\.month  AS \"month\",
 		   sc\.year   AS \"year\",
 		   sc\.cvc    AS \"cvc\",
-		   sc\.pin    AS \"pin\"
+		   sc\.pin    AS \"pin\",
+		   sc\.meta   AS \"meta\"
 	FROM sec_cards sc
 	WHERE sc\.uid = .+? AND 
 	      sc\.id  = .+?

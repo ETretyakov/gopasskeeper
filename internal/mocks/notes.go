@@ -6,8 +6,8 @@ func (mdb *MockedDB) NoteAddMockedDB(id string) *MockedDB {
 		AddRow(id)
 
 	query := `
-	INSERT INTO public\.sec_notes\(uid, name, content\)
-	VALUES \(.+?, .+?, .+?\)
+	INSERT INTO public\.sec_notes\(uid, name, content, meta\)
+	VALUES \(.+?, .+?, .+?, .+?\)
 	RETURNING id;
 	`
 	mdb.mock.ExpectPrepare(query)
@@ -16,17 +16,18 @@ func (mdb *MockedDB) NoteAddMockedDB(id string) *MockedDB {
 	return mdb
 }
 
-func (mdb *MockedDB) NoteGetSecretMockedDB(name, content string) *MockedDB {
+func (mdb *MockedDB) NoteGetSecretMockedDB(name, content, meta string) *MockedDB {
 	rows := mdb.mock.
-		NewRows([]string{"name", "content"}).
-		AddRow(name, content)
+		NewRows([]string{"name", "content", "meta"}).
+		AddRow(name, content, meta)
 
 	query := `
-	SELECT sn\.name   AS \"name\",
-		   sn\.content AS \"content\"
+	SELECT sn\.name    AS \"name\",
+		   sn\.content AS \"content\",
+		   sn\.meta    AS \"meta\"
 	FROM sec_notes sn
 	WHERE sn\.uid = .+? AND 
-			sn\.id  = .+?
+		  sn\.id  = .+?
 	LIMIT 1;
 	`
 	mdb.mock.ExpectPrepare(query)

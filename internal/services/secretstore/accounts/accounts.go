@@ -23,6 +23,7 @@ type AccountStorage interface {
 		login string,
 		server string,
 		password string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
@@ -80,6 +81,7 @@ func (a *Accounts) Add(
 	login string,
 	server string,
 	password string,
+	meta string,
 ) (*models.Message, error) {
 	const op = "Accounts.Add"
 	log := a.log.WithOperator(op)
@@ -90,7 +92,19 @@ func (a *Accounts) Add(
 		return nil, errors.Wrap(err, "failed to encrypt password")
 	}
 
-	accountID, err := a.accountStorage.Add(ctx, uid, login, server, string(encPassword[:]))
+	encMeta, err := a.fernetEncryptor.Encrypt([]byte(meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encrypt meta")
+	}
+
+	accountID, err := a.accountStorage.Add(
+		ctx,
+		uid,
+		login,
+		server,
+		string(encPassword[:]),
+		string(encMeta[:]),
+	)
 	if err != nil {
 		log.Error("failed to save account", err)
 		return nil, errors.Wrap(err, op)
@@ -128,6 +142,12 @@ func (a *Accounts) GetSecret(
 		return nil, errors.Wrap(err, "failed to decrypt password")
 	}
 	accountSecret.Password = string(decPassword[:])
+
+	decMeta, err := a.fernetEncryptor.Decrypt([]byte(accountSecret.Meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decrypt meta")
+	}
+	accountSecret.Meta = string(decMeta[:])
 
 	return accountSecret, nil
 }

@@ -25,6 +25,7 @@ func TestFilesRepoImpl_Add(t *testing.T) {
 		ctx  context.Context
 		uid  string
 		name string
+		meta string
 	}
 	tests := []struct {
 		name    string
@@ -40,6 +41,7 @@ func TestFilesRepoImpl_Add(t *testing.T) {
 				ctx:  ctx,
 				uid:  "31487452-31d9-4b1f-a7f8-c00b43372730",
 				name: "file.txt",
+				meta: "meta",
 			},
 			want:    id,
 			wantErr: false,
@@ -50,7 +52,7 @@ func TestFilesRepoImpl_Add(t *testing.T) {
 			r := &FilesRepoImpl{
 				db: tt.fields.db,
 			}
-			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.name)
+			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.meta)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FilesRepoImpl.Add() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -67,9 +69,10 @@ func TestFilesRepoImpl_GetSecret(t *testing.T) {
 
 	const (
 		name = "file.txt"
+		meta = "meta"
 	)
 	mockedDB := mocks.NewDB(t).
-		FileGetSecretMockedDB(name)
+		FileGetSecretMockedDB(name, meta)
 
 	type fields struct {
 		db *sqlx.DB
@@ -78,13 +81,15 @@ func TestFilesRepoImpl_GetSecret(t *testing.T) {
 		ctx    context.Context
 		uid    string
 		fileID string
+		meta   string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
+		name     string
+		fields   fields
+		args     args
+		wantName string
+		wantMeta string
+		wantErr  bool
 	}{
 		{
 			name:   "Success",
@@ -93,9 +98,11 @@ func TestFilesRepoImpl_GetSecret(t *testing.T) {
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",
 				fileID: "d89b92df-44e8-4d66-857a-bf7ec0a61556",
+				meta:   "meta",
 			},
-			want:    name,
-			wantErr: false,
+			wantName: name,
+			wantMeta: meta,
+			wantErr:  false,
 		},
 	}
 	for _, tt := range tests {
@@ -103,13 +110,16 @@ func TestFilesRepoImpl_GetSecret(t *testing.T) {
 			r := &FilesRepoImpl{
 				db: tt.fields.db,
 			}
-			got, err := r.GetSecret(tt.args.ctx, tt.args.uid, tt.args.fileID)
+			gotName, gotMeta, err := r.GetSecret(tt.args.ctx, tt.args.uid, tt.args.fileID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FilesRepoImpl.GetSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("FilesRepoImpl.GetSecret() = %v, want %v", got, tt.want)
+			if gotName != tt.wantName {
+				t.Errorf("FilesRepoImpl.GetSecret() = %v, want %v", gotName, tt.wantName)
+			}
+			if gotMeta != tt.wantMeta {
+				t.Errorf("FilesRepoImpl.GetSecret() = %v, want %v", gotMeta, tt.wantMeta)
 			}
 		})
 	}

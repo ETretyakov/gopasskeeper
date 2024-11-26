@@ -23,20 +23,23 @@ func TestFiles_Add(t *testing.T) {
 	aesEncryptor := mocks.NewAESEncryptor()
 	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
+	fernetEncryptor := mocks.NewFernet(t)
 	s3Client := mocks.NewMockedS3Client()
 
 	type fields struct {
-		log          *logger.GRPCLogger
-		aesEncryptor *crypto.AESEncryptor
-		fileStorage  FileStorage
-		s3Client     S3Client
-		syncStorage  SyncStorage
+		log             *logger.GRPCLogger
+		aesEncryptor    *crypto.AESEncryptor
+		fernetEncryptor *crypto.FernetEncryptor
+		fileStorage     FileStorage
+		s3Client        S3Client
+		syncStorage     SyncStorage
 	}
 	type args struct {
 		ctx     context.Context
 		uid     string
 		name    string
 		content []byte
+		meta    string
 	}
 	tests := []struct {
 		name    string
@@ -47,17 +50,19 @@ func TestFiles_Add(t *testing.T) {
 	}{
 		{
 			fields: fields{
-				log:          log,
-				aesEncryptor: aesEncryptor,
-				fileStorage:  repo.Files,
-				s3Client:     s3Client,
-				syncStorage:  repo.Sync,
+				log:             log,
+				aesEncryptor:    aesEncryptor,
+				fernetEncryptor: fernetEncryptor,
+				fileStorage:     repo.Files,
+				s3Client:        s3Client,
+				syncStorage:     repo.Sync,
 			},
 			args: args{
 				ctx:     ctx,
 				uid:     "31487452-31d9-4b1f-a7f8-c00b43372730",
 				name:    "file.txt",
 				content: []byte{},
+				meta:    "meta",
 			},
 			want: &models.Message{
 				Status: true,
@@ -68,13 +73,14 @@ func TestFiles_Add(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Files{
-				log:          tt.fields.log,
-				aesEncryptor: tt.fields.aesEncryptor,
-				fileStorage:  tt.fields.fileStorage,
-				s3Client:     tt.fields.s3Client,
-				syncStorage:  tt.fields.syncStorage,
+				log:             tt.fields.log,
+				aesEncryptor:    tt.fields.aesEncryptor,
+				fernetEncryptor: tt.fields.fernetEncryptor,
+				fileStorage:     tt.fields.fileStorage,
+				s3Client:        tt.fields.s3Client,
+				syncStorage:     tt.fields.syncStorage,
 			}
-			got, err := c.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.content)
+			got, err := c.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.content, tt.args.meta)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Files.Add() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -91,22 +97,28 @@ func TestFiles_GetSecret(t *testing.T) {
 
 	const (
 		name = "file.txt"
+		meta = "meta"
 	)
 
-	mockedDB := mocks.NewDB(t).
-		FileGetSecretMockedDB(name)
-
-	repo := repository.New(mockedDB.Get())
 	log := logger.NewGRPCLogger("accounts-test")
 	s3Client := mocks.NewMockedS3Client()
+	fernetEncryptor := mocks.NewFernet(t)
 	aesEncryptor := mocks.NewAESEncryptor()
 
+	encMeta, _ := fernetEncryptor.Encrypt([]byte(meta))
+
+	mockedDB := mocks.NewDB(t).
+		FileGetSecretMockedDB(name, string(encMeta[:]))
+
+	repo := repository.New(mockedDB.Get())
+
 	type fields struct {
-		log          *logger.GRPCLogger
-		aesEncryptor *crypto.AESEncryptor
-		fileStorage  FileStorage
-		s3Client     S3Client
-		syncStorage  SyncStorage
+		log             *logger.GRPCLogger
+		aesEncryptor    *crypto.AESEncryptor
+		fernetEncryptor *crypto.FernetEncryptor
+		fileStorage     FileStorage
+		s3Client        S3Client
+		syncStorage     SyncStorage
 	}
 	type args struct {
 		ctx    context.Context
@@ -123,11 +135,12 @@ func TestFiles_GetSecret(t *testing.T) {
 		{
 			name: "Success",
 			fields: fields{
-				log:          log,
-				aesEncryptor: aesEncryptor,
-				fileStorage:  repo.Files,
-				s3Client:     s3Client,
-				syncStorage:  repo.Sync,
+				log:             log,
+				aesEncryptor:    aesEncryptor,
+				fernetEncryptor: fernetEncryptor,
+				fileStorage:     repo.Files,
+				s3Client:        s3Client,
+				syncStorage:     repo.Sync,
 			},
 			args: args{
 				ctx:    ctx,
@@ -137,6 +150,7 @@ func TestFiles_GetSecret(t *testing.T) {
 			want: &models.FileSecret{
 				Name:    "file.txt",
 				Content: []byte{},
+				Meta:    "meta",
 			},
 			wantErr: false,
 		},
@@ -144,11 +158,12 @@ func TestFiles_GetSecret(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Files{
-				log:          tt.fields.log,
-				aesEncryptor: tt.fields.aesEncryptor,
-				fileStorage:  tt.fields.fileStorage,
-				s3Client:     tt.fields.s3Client,
-				syncStorage:  tt.fields.syncStorage,
+				log:             tt.fields.log,
+				aesEncryptor:    tt.fields.aesEncryptor,
+				fernetEncryptor: tt.fields.fernetEncryptor,
+				fileStorage:     tt.fields.fileStorage,
+				s3Client:        tt.fields.s3Client,
+				syncStorage:     tt.fields.syncStorage,
 			}
 			got, err := c.GetSecret(tt.args.ctx, tt.args.uid, tt.args.fileID)
 			if (err != nil) != tt.wantErr {
@@ -255,10 +270,11 @@ func TestFiles_Remove(t *testing.T) {
 
 	const (
 		name = "file.txt"
+		meta = "meta"
 	)
 
 	mockedDB := mocks.NewDB(t).
-		FileGetSecretMockedDB(name).
+		FileGetSecretMockedDB(name, meta).
 		FileRemoveMockedDB().
 		AddSyncMocks()
 

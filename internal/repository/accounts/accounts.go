@@ -26,12 +26,13 @@ func (r *AccountsRepoImpl) Add(
 	login string,
 	server string,
 	password string,
+	meta string,
 ) (string, error) {
 	const op = "repository.Accounts.Add"
 
 	stmt := `
-	INSERT INTO public.sec_accounts(uid, login, password, server)
-	VALUES (:uid, :login, :password, :server)
+	INSERT INTO public.sec_accounts(uid, login, password, server, meta)
+	VALUES (:uid, :login, :password, :server, :meta)
 	RETURNING id;
 	`
 
@@ -46,6 +47,7 @@ func (r *AccountsRepoImpl) Add(
 		"login":    login,
 		"password": password,
 		"server":   server,
+		"meta":     meta,
 	}
 
 	var accountID string
@@ -68,7 +70,8 @@ func (r *AccountsRepoImpl) GetSecret(
 	stmt := `
 	SELECT sa.login    AS "login",
 		   sa.server   AS "server",
-		   sa.password AS "password"
+		   sa.password AS "password",
+		   sa.meta     AS "meta"
 	FROM sec_accounts sa
 	WHERE sa.uid = :uid AND 
 	      sa.id  = :account_id

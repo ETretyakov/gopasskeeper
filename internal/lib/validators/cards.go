@@ -13,13 +13,14 @@ type CreditCard struct {
 	Year   int32
 	CVC    string
 	PIN    string
+	Meta   string
 }
 
 // NewCreditCard is a builder function for CreditCard.
 func NewCreditCard(
 	number string,
 	month, year int32,
-	cvc, pin string,
+	cvc, pin, meta string,
 ) *CreditCard {
 	number = strings.ReplaceAll(number, " ", "")
 	cvc = strings.ReplaceAll(cvc, " ", "")
@@ -31,6 +32,7 @@ func NewCreditCard(
 		Year:   year,
 		CVC:    cvc,
 		PIN:    pin,
+		Meta:   meta,
 	}
 }
 

@@ -18,6 +18,7 @@ message CardAddRequest {
     int32 year = 4;
     string cvc = 5;
     string pin = 6;
+    string meta = 7;
 }
 
 message CardAddResponse {
@@ -36,6 +37,7 @@ message CardSecretResponse {
     int32 year = 4;
     string cvc = 5;
     string pin = 6;
+    string meta = 7;
 }
 
 message CardSearchRequest {

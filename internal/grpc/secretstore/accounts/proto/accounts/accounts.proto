@@ -15,6 +15,7 @@ message AccountAddRequest {
     string login = 1;
     string server = 2;
     string password = 3;
+    string meta = 4;
 }
 
 message AccountAddResponse {
@@ -30,6 +31,7 @@ message AccountSecretResponse {
     string login = 1;
     string server = 2;
     string password = 3;
+    string meta = 4;
 }
 
 message AccountSearchRequest {

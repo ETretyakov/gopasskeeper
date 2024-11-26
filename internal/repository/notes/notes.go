@@ -25,12 +25,13 @@ func (r *NotesRepoImpl) Add(
 	uid string,
 	name string,
 	content string,
+	meta string,
 ) (string, error) {
 	const op = "repository.Notes.Add"
 
 	stmt := `
-	INSERT INTO public.sec_notes(uid, name, content)
-	VALUES (:uid, :name, :content)
+	INSERT INTO public.sec_notes(uid, name, content, meta)
+	VALUES (:uid, :name, :content, :meta)
 	RETURNING id;
 	`
 
@@ -44,6 +45,7 @@ func (r *NotesRepoImpl) Add(
 		"uid":     uid,
 		"name":    name,
 		"content": content,
+		"meta":    meta,
 	}
 
 	var noteID string
@@ -64,8 +66,9 @@ func (r *NotesRepoImpl) GetSecret(
 	const op = "repository.Notes.GetSecret"
 
 	stmt := `
-	SELECT sn.name   AS "name",
-		   sn.content AS "content"
+	SELECT sn.name    AS "name",
+		   sn.content AS "content",
+		   sn.meta    AS "meta"
 	FROM sec_notes sn
 	WHERE sn.uid = :uid AND 
 	      sn.id  = :note_id

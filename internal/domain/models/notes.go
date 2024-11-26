@@ -4,6 +4,7 @@ package models
 type NoteSecret struct {
 	Name    string `db:"name"`
 	Content string `db:"content"`
+	Meta    string `db:"meta"`
 }
 
 // NoteSearchRequest is a structure to describe card search request.

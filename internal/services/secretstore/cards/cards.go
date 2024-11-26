@@ -27,6 +27,7 @@ type CardStorage interface {
 		year int32,
 		cvc string,
 		pin string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
@@ -88,6 +89,7 @@ func (c *Cards) Add(
 	year int32,
 	cvc string,
 	pin string,
+	meta string,
 ) (*models.Message, error) {
 	const op = "Cards.Add"
 	log := c.log.WithOperator(op)
@@ -103,6 +105,11 @@ func (c *Cards) Add(
 		return nil, errors.Wrap(err, "failed to encrypt pin")
 	}
 
+	encMeta, err := c.fernetEncryptor.Encrypt([]byte(meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encrypt meta")
+	}
+
 	cardID, err := c.cardStorage.Add(
 		ctx,
 		uid,
@@ -113,6 +120,7 @@ func (c *Cards) Add(
 		year,
 		string(encCVC[:]),
 		string(encPIN[:]),
+		string(encMeta[:]),
 	)
 	if err != nil {
 		log.Error("failed to save card", err)
@@ -157,6 +165,12 @@ func (c *Cards) GetSecret(
 		return nil, errors.Wrap(err, "failed to decrypt pin")
 	}
 	cardSecret.PIN = string(decPIN[:])
+
+	decMeta, err := c.fernetEncryptor.Decrypt([]byte(cardSecret.Meta))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decrypt meta")
+	}
+	cardSecret.Meta = string(decMeta[:])
 
 	return cardSecret, nil
 }

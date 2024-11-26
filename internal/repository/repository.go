@@ -27,6 +27,7 @@ type AccountsRepo interface {
 		login string,
 		server string,
 		password string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
@@ -57,6 +58,7 @@ type CardRepo interface {
 		year int32,
 		cvc string,
 		pin string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
@@ -82,6 +84,7 @@ type NoteRepo interface {
 		uid string,
 		name string,
 		content string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
@@ -106,12 +109,13 @@ type FileRepo interface {
 		ctx context.Context,
 		uid string,
 		name string,
+		meta string,
 	) (string, error)
 	GetSecret(
 		ctx context.Context,
 		uid string,
 		fileID string,
-	) (string, error)
+	) (string, string, error)
 	Search(
 		ctx context.Context,
 		uid string,

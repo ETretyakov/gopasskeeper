@@ -5,6 +5,7 @@ type AccountSecret struct {
 	Login    string `db:"login"`
 	Server   string `db:"server"`
 	Password string `db:"password"`
+	Meta     string `db:"meta"`
 }
 
 // AccountSearchRequest is a structure to describe account search request.

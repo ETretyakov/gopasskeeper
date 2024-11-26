@@ -4,6 +4,7 @@ package models
 type FileSecret struct {
 	Name    string
 	Content []byte
+	Meta    string
 }
 
 // FileSearchRequest is a structure to describe card search request.

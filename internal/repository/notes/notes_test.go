@@ -26,6 +26,7 @@ func TestNotesRepoImpl_Add(t *testing.T) {
 		uid     string
 		name    string
 		content string
+		meta    string
 	}
 	tests := []struct {
 		name    string
@@ -42,6 +43,7 @@ func TestNotesRepoImpl_Add(t *testing.T) {
 				uid:     "31487452-31d9-4b1f-a7f8-c00b43372730",
 				name:    "note",
 				content: "content",
+				meta:    "meta",
 			},
 			want:    id,
 			wantErr: false,
@@ -52,7 +54,7 @@ func TestNotesRepoImpl_Add(t *testing.T) {
 			r := &NotesRepoImpl{
 				db: tt.fields.db,
 			}
-			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.content)
+			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.name, tt.args.content, tt.args.meta)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NotesRepoImpl.Add() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -70,9 +72,10 @@ func TestNotesRepoImpl_GetSecret(t *testing.T) {
 	const (
 		name    = "note"
 		content = "content"
+		meta    = "meta"
 	)
 	mockedDB := mocks.NewDB(t).
-		NoteGetSecretMockedDB(name, content)
+		NoteGetSecretMockedDB(name, content, meta)
 
 	type fields struct {
 		db *sqlx.DB
@@ -81,6 +84,7 @@ func TestNotesRepoImpl_GetSecret(t *testing.T) {
 		ctx    context.Context
 		uid    string
 		noteID string
+		meta   string
 	}
 	tests := []struct {
 		name    string
@@ -95,10 +99,12 @@ func TestNotesRepoImpl_GetSecret(t *testing.T) {
 				ctx:    ctx,
 				uid:    "31487452-31d9-4b1f-a7f8-c00b43372730",
 				noteID: "d89b92df-44e8-4d66-857a-bf7ec0a61556",
+				meta:   meta,
 			},
 			want: &models.NoteSecret{
 				Name:    name,
 				Content: content,
+				Meta:    meta,
 			},
 			wantErr: false,
 		},

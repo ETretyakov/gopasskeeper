@@ -15,6 +15,7 @@ service Files {
 message FileAddRequest {
     string name = 1;
     bytes content = 2;
+    string meta = 3;
 }
 
 message FileAddResponse {
@@ -29,6 +30,7 @@ message FileSecretRequest {
 message FileSecretResponse {
     string name = 1;
     bytes content = 2;
+    string meta = 3;
 }
 
 message FileSearchRequest {

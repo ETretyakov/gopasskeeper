@@ -24,6 +24,7 @@ func TestAccountsRepoImpl_Add(t *testing.T) {
 		login    string
 		server   string
 		password string
+		meta     string
 	}
 	tests := []struct {
 		name    string
@@ -41,6 +42,7 @@ func TestAccountsRepoImpl_Add(t *testing.T) {
 				login:    "user",
 				server:   "https://test.com",
 				password: "P@ssWord!",
+				meta:     "meta",
 			},
 			want:    accountID,
 			wantErr: false,
@@ -51,7 +53,7 @@ func TestAccountsRepoImpl_Add(t *testing.T) {
 			r := &AccountsRepoImpl{
 				db: tt.fields.db,
 			}
-			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.login, tt.args.server, tt.args.password)
+			got, err := r.Add(tt.args.ctx, tt.args.uid, tt.args.login, tt.args.server, tt.args.password, tt.args.meta)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AccountsRepoImpl.Add() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -70,10 +72,11 @@ func TestAccountsRepoImpl_GetSecret(t *testing.T) {
 		login    = "user"
 		server   = "https://test.com"
 		password = "P@ssWord!"
+		meta     = "meta"
 	)
 
 	mockedDB := mocks.NewDB(t).
-		AccountGetSecretMockedDB(login, server, password)
+		AccountGetSecretMockedDB(login, server, password, meta)
 
 	type fields struct {
 		db *sqlx.DB
@@ -102,6 +105,7 @@ func TestAccountsRepoImpl_GetSecret(t *testing.T) {
 				Login:    login,
 				Server:   server,
 				Password: password,
+				Meta:     meta,
 			},
 			wantErr: false,
 		},

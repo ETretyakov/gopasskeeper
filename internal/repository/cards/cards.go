@@ -30,12 +30,13 @@ func (r *CardsRepoImpl) Add(
 	year int32,
 	cvc string,
 	pin string,
+	meta string,
 ) (string, error) {
 	const op = "repository.Cards.Add"
 
 	stmt := `
-	INSERT INTO public.sec_cards(uid, name, number, mask, month, year, cvc, pin)
-	VALUES (:uid, :name, :number, :mask, :month, :year, :cvc, :pin)
+	INSERT INTO public.sec_cards(uid, name, number, mask, month, year, cvc, pin, meta)
+	VALUES (:uid, :name, :number, :mask, :month, :year, :cvc, :pin, :meta)
 	RETURNING id;
 	`
 
@@ -54,6 +55,7 @@ func (r *CardsRepoImpl) Add(
 		"year":   year,
 		"cvc":    cvc,
 		"pin":    pin,
+		"meta":   meta,
 	}
 
 	var cardID string
@@ -79,7 +81,8 @@ func (r *CardsRepoImpl) GetSecret(
 		   sc.month  AS "month",
 		   sc.year   AS "year",
 		   sc.cvc    AS "cvc",
-		   sc.pin    AS "pin"
+		   sc.pin    AS "pin",
+		   sc.meta   AS "meta"
 	FROM sec_cards sc
 	WHERE sc.uid = :uid AND 
 	      sc.id  = :card_id

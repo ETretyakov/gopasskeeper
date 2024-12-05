@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package files;
+
+option go_package = "gopasskeeper.sync.v1;syncv1";
+
+service Sync {
+    rpc Get(SyncGetRequest) returns (SyncGetResponse);
+}
+
+message SyncGetRequest {
+    string device_id = 1;
+}
+
+message SyncGetResponse {
+    string timestamp = 1;
+}

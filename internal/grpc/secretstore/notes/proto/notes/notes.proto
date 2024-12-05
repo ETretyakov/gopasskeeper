@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package notes;
+
+option go_package = "gopasskeeper.notes.v1;notesv1";
+
+service Notes {
+    rpc Add(NoteAddRequest) returns (NoteAddResponse);
+    rpc GetSecret(NoteSecretRequest) returns (NoteSecretResponse);
+    rpc Search(NoteSearchRequest) returns (NoteSearchResponse);
+    rpc Remove(NoteRemoveRequest) returns (NoteRemoveResponse);
+}
+
+message NoteAddRequest {
+    string name = 1;
+    string content = 2;
+    string meta = 3;
+}
+
+message NoteAddResponse {
+    bool status = 1;
+    string msg = 2;
+}
+
+message NoteSecretRequest {
+    string secret_id = 1;
+}
+
+message NoteSecretResponse {
+    string name = 1;
+    string content = 2;
+    string meta = 3;
+}
+
+message NoteSearchRequest {
+    string substring = 1;
+    int64 offset = 2;
+    int32 limit = 3;
+}
+
+message NoteSearchItem {
+    string id = 1;
+    string name = 2;
+}
+
+message NoteSearchResponse {
+    int64 count = 1;
+    repeated NoteSearchItem items = 2;
+}
+
+message NoteRemoveRequest {
+    string id = 1;
+}
+
+message NoteRemoveResponse {
+    bool status = 1;
+    string msg = 2;
+}

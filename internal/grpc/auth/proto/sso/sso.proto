@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "internal.proto.sso.v1;ssov1";
+
+// Auth is service for managing permissions and roles.
+service Auth {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+  rpc Login (LoginRequest) returns (LoginResponse);
+}
+
+message RegisterRequest {
+  string login = 1; // Email of the user to register.
+  string password = 2; // Password of the user to register.
+}
+
+message RegisterResponse {
+  string user_id = 1; // User ID of the registered user.
+}
+
+message LoginRequest {
+  string login = 1; // Email of the user to login.
+  string password = 2; // Password of the user to login.
+}
+
+message LoginResponse {
+  string token = 1; // Auth token of the logged in user.
+}

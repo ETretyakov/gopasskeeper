@@ -19,11 +19,11 @@ func (mdb *MockedDB) CardAddMockedDB(id string) *MockedDB {
 func (mdb *MockedDB) CardGetSecretMockedDB(
 	name, number string,
 	month, year int32,
-	cvc, pin string,
+	cvc, pin, meta string,
 ) *MockedDB {
 	rows := mdb.mock.
 		NewRows([]string{"name", "number", "month", "year", "cvc", "pin", "meta"}).
-		AddRow(name, number, month, year, cvc, pin)
+		AddRow(name, number, month, year, cvc, pin, meta)
 
 	query := `
 	SELECT sc\.name   AS \"name\",

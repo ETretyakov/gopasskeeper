@@ -84,6 +84,7 @@ func TestCardsRepoImpl_GetSecret(t *testing.T) {
 		year   = 2025
 		cvc    = "777"
 		pin    = "1111"
+		meta   = "meta"
 	)
 
 	mockedDB := mocks.NewDB(t).
@@ -94,6 +95,7 @@ func TestCardsRepoImpl_GetSecret(t *testing.T) {
 			year,
 			cvc,
 			pin,
+			meta,
 		)
 
 	type fields struct {
@@ -126,6 +128,7 @@ func TestCardsRepoImpl_GetSecret(t *testing.T) {
 				Year:   year,
 				CVC:    cvc,
 				PIN:    pin,
+				Meta:   meta,
 			},
 			wantErr: false,
 		},

@@ -6,8 +6,8 @@ func (mdb *MockedDB) AccountAddMockedDB(accountID string) *MockedDB {
 		AddRow(accountID)
 
 	query := `
-	INSERT INTO public\.sec_accounts\(uid, login, password, server\)
-	VALUES \(.+?, .+?, .+?, .+?\)
+	INSERT INTO public\.sec_accounts\(uid, login, password, server, meta\)
+	VALUES \(.+?, .+?, .+?, .+?, .+?\)
 	RETURNING id;
 	`
 	mdb.mock.ExpectPrepare(query)

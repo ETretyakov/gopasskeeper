@@ -106,18 +106,22 @@ func TestCards_GetSecret(t *testing.T) {
 		year   = 2025
 		cvc    = "777"
 		pin    = "1111"
+		meta   = "meta"
 	)
 
 	fernetEncryptor := mocks.NewFernet(t)
 	encCVC, _ := fernetEncryptor.Encrypt([]byte(cvc))
 	encPIN, _ := fernetEncryptor.Encrypt([]byte(pin))
+	encMeta, _ := fernetEncryptor.Encrypt([]byte(meta))
 
 	mockedDB := mocks.NewDB(t).
 		CardGetSecretMockedDB(
 			name,
 			number,
 			month, year,
-			string(encCVC[:]), string(encPIN[:]),
+			string(encCVC[:]),
+			string(encPIN[:]),
+			string(encMeta[:]),
 		)
 
 	repo := repository.New(mockedDB.Get())
@@ -161,6 +165,7 @@ func TestCards_GetSecret(t *testing.T) {
 				Year:   2025,
 				CVC:    cvc,
 				PIN:    pin,
+				Meta:   meta,
 			},
 			wantErr: false,
 		},

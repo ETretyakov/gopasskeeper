@@ -9,6 +9,14 @@ Or just use the `docker-compose.yaml` file to setup dependencies with docker-com
 docker compose -f docker-compose.yaml up -d 
 ```
 
+### Setup MinIO
+You can use the comand below to start MinIO server.
+```bash
+docker run --name gopasskeeper-minio -d -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=password -e MINIO_USE_SSL=0 -e MINIO_DEFAULT_BUCKETS=storage-dev -p 9000:9000 -p 9001:9001 bitnami/minio:latest
+```
+
+In order to start the application server you need to create a service account. To create a service account login to the MinIO web-interface (localhost:9090) and create `access key`. This `access key` should be indicated in the config file by address `s3.accessKey` and `s3.secretAccess`.
+
 ## Configuration
 In order to start server, client and make proper migrations you need to place `server-config.yaml` in the root directory. The example of its content is further:
 ```yaml
